@@ -28,6 +28,9 @@ def render_progress_dashboard(audit_id: str) -> None:
 
     if overall_status == "completed":
         st.success("Audit completed!")
+        # Show any diagnostic info (e.g. LLM async test failures)
+        if status_data.error_message:
+            st.warning(f"Diagnostic: {status_data.error_message}")
         score = status_data.overall_score
         grade = status_data.overall_grade
         if score is not None:
