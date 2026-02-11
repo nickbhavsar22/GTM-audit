@@ -1,4 +1,4 @@
-# Frontend
+# Frontend (v3 rebuild)
 streamlit>=1.31.0
 
 # Database
