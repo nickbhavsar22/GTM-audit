@@ -1,0 +1,79 @@
+"""Real-time progress dashboard for agent execution."""
+
+import time
+
+import streamlit as st
+
+from backend.models.base import SessionLocal
+from backend.services.audit_service import AuditService
+from config.constants import AGENT_DISPLAY_NAMES
+
+
+def render_progress_dashboard(audit_id: str) -> None:
+    """Display progress bars for all agents with auto-refresh."""
+    db = SessionLocal()
+    try:
+        service = AuditService(db)
+        try:
+            status_data = service.get_status(audit_id)
+        except ValueError:
+            st.error("Audit not found.")
+            return
+    finally:
+        db.close()
+
+    # Header
+    st.subheader(f"Audit: {status_data.company_url}")
+    overall_status = status_data.status
+
+    if overall_status == "completed":
+        st.success("Audit completed!")
+        score = status_data.overall_score
+        grade = status_data.overall_grade
+        if score is not None:
+            col1, col2, col3 = st.columns([1, 1, 2])
+            with col1:
+                st.metric("Overall Score", f"{score:.0f}/100")
+            with col2:
+                st.metric("Grade", grade or "N/A")
+            with col3:
+                st.markdown("")  # spacer
+                if st.button("View Full Report", type="primary", use_container_width=True):
+                    st.session_state["view_audit_id"] = audit_id
+                    st.switch_page("frontend/pages/2_View_Reports.py")
+        else:
+            if st.button("View Report", type="primary"):
+                st.session_state["view_audit_id"] = audit_id
+                st.switch_page("frontend/pages/2_View_Reports.py")
+        return
+
+    if overall_status == "failed":
+        st.error(f"Audit failed: {status_data.error_message or 'Unknown error'}")
+        return
+
+    # Agent progress bars
+    st.markdown("### Agent Progress")
+    agents = status_data.agents or []
+
+    for agent in agents:
+        name = agent.agent_name
+        display_name = AGENT_DISPLAY_NAMES.get(name, name)
+        progress = (agent.progress_pct or 0) / 100.0
+        current_task = agent.current_task or "Waiting..."
+        agent_status = agent.status or "pending"
+
+        if agent_status == "completed":
+            label = f"{display_name}: Complete"
+        elif agent_status == "failed":
+            label = f"{display_name}: Failed"
+        elif agent_status == "running":
+            label = f"{display_name}: {current_task}"
+        else:
+            label = f"{display_name}: Waiting..."
+
+        st.progress(progress, text=label)
+
+    # Auto-refresh while running
+    if overall_status == "running":
+        time.sleep(3)
+        st.rerun()

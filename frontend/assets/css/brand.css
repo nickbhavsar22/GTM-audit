@@ -1,0 +1,37 @@
+/* GTM Audit Platform — Custom Streamlit Styling */
+
+/* Hide Streamlit default branding */
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+
+/* Custom heading styles */
+h1 {
+    color: #F8FAFC !important;
+    font-weight: 800 !important;
+}
+
+h2, h3 {
+    color: #E2E8F0 !important;
+}
+
+/* Button styling */
+.stButton > button[kind="primary"] {
+    background-color: #4F46E5 !important;
+    border-color: #4F46E5 !important;
+}
+
+.stButton > button[kind="primary"]:hover {
+    background-color: #4338CA !important;
+    border-color: #4338CA !important;
+}
+
+/* Progress bar */
+.stProgress > div > div {
+    background-color: #4F46E5 !important;
+}
+
+/* Metric styling */
+[data-testid="stMetricValue"] {
+    font-size: 2rem !important;
+    font-weight: 800 !important;
+}

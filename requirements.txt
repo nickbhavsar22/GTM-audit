@@ -1,0 +1,29 @@
+# Frontend
+streamlit>=1.31.0
+
+# Database
+sqlalchemy>=2.0.25
+
+# LLM
+anthropic>=0.18.0
+
+# Web Scraping (httpx fallback — Playwright optional for local)
+beautifulsoup4>=4.12.0
+httpx>=0.25.0
+lxml>=5.0.0
+
+# Report Generation
+jinja2>=3.1.0
+weasyprint>=62.0
+markdown>=3.5.0
+
+# Configuration
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-dotenv>=1.0.0
+
+# Security
+bcrypt>=4.1.0
+
+# Image Processing
+Pillow>=10.0.0

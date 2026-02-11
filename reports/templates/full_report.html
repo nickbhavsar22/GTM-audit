@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTM Audit Report — {{ company_name }}</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-light: #818CF8;
+            --success: #22C55E;
+            --warning: #EAB308;
+            --danger: #EF4444;
+            --bg: #0F172A;
+            --bg-card: #1E293B;
+            --bg-card-hover: #334155;
+            --text: #F8FAFC;
+            --text-muted: #94A3B8;
+            --border: #334155;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+        /* Cover Page */
+        .cover {
+            background: linear-gradient(135deg, #1E1B4B 0%, #312E81 50%, #4338CA 100%);
+            padding: 4rem 2rem;
+            text-align: center;
+            border-bottom: 3px solid var(--primary);
+        }
+        .cover h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; }
+        .cover .subtitle { color: var(--primary-light); font-size: 1.2rem; margin-bottom: 2rem; }
+        .cover .meta { color: var(--text-muted); font-size: 0.9rem; }
+
+        /* Score Circle */
+        .score-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 6px solid;
+            margin: 1.5rem 0;
+        }
+        .score-circle .number { font-size: 2.8rem; font-weight: 800; }
+        .score-circle .label { font-size: 0.75rem; color: var(--text-muted); }
+
+        /* Sections */
+        .section { padding: 3rem 0; border-bottom: 1px solid var(--border); }
+        .section h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section h3 { font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 0.75rem; }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+        }
+        .card:hover { border-color: var(--primary); }
+
+        /* Score badges */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .badge-grade {
+            padding: 0.35rem 1rem;
+            font-size: 1rem;
+        }
+
+        /* Recommendation cards */
+        .rec-card {
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid var(--primary);
+        }
+        .rec-card .rec-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .rec-card .rec-area { color: var(--primary-light); font-size: 0.8rem; font-weight: 600; }
+        .rec-card .rec-issue { font-weight: 600; margin-bottom: 0.25rem; }
+        .rec-card .rec-detail { color: var(--text-muted); font-size: 0.9rem; }
+
+        .impact-high { color: var(--danger); }
+        .impact-medium { color: var(--warning); }
+        .impact-low { color: var(--success); }
+
+        /* Grid */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+
+        /* Module section */
+        .module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .module-score { font-size: 1.8rem; font-weight: 800; }
+        .analysis-text { color: var(--text-muted); white-space: pre-line; }
+
+        /* Strengths & Weaknesses */
+        .strength { color: var(--success); }
+        .weakness { color: var(--danger); }
+        .list-item { padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+        .list-item:last-child { border-bottom: none; }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .cover h1 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Cover Page -->
+<div class="cover">
+    <h1>GTM Audit Report</h1>
+    <div class="subtitle">{{ company_name }}</div>
+    <div class="score-circle" style="border-color: {{ overall_score | score_color }};">
+        <div>
+            <div class="number">{{ "%.0f" | format(overall_score) }}</div>
+            <div class="label">GTM SCORE</div>
+        </div>
+    </div>
+    <div>
+        <span class="badge badge-grade" style="background: {{ overall_grade | grade_color }}; color: white;">
+            Grade: {{ overall_grade }}
+        </span>
+    </div>
+    <div class="meta" style="margin-top: 1rem;">
+        {{ company_url }} &bull; {{ report.audit_date }} &bull; {{ report.audit_type | capitalize }} Audit
+    </div>
+</div>
+
+<div class="container">
+
+<!-- Executive Summary -->
+<div class="section">
+    <h2>Executive Summary</h2>
+
+    {% if strengths %}
+    <h3>Top Strengths</h3>
+    <div class="card">
+        {% for s in strengths %}
+        <div class="list-item strength">{{ s }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if critical_gaps %}
+    <h3>Critical Gaps</h3>
+    <div class="card">
+        {% for g in critical_gaps %}
+        <div class="list-item weakness">{{ g }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if quick_wins %}
+    <h3>Quick Wins (High Impact, Low Effort)</h3>
+    {% for rec in quick_wins %}
+    <div class="rec-card">
+        <div class="rec-header">
+            <span class="rec-area">{{ rec.area }}</span>
+            <span class="badge" style="background: var(--success); color: white;">Quick Win</span>
+        </div>
+        <div class="rec-issue">{{ rec.issue }}</div>
+        <div class="rec-detail">{{ rec.recommendation }}</div>
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
+
+<!-- Module Sections -->
+{% for module in modules %}
+<div class="section">
+    <div class="module-header">
+        <h2>{{ module.name }}</h2>
+        <div>
+            <span class="module-score" style="color: {{ module.percentage | score_color }};">
+                {{ "%.0f" | format(module.percentage) }}%
+            </span>
+            <span class="badge badge-grade" style="background: {{ module.grade.value | grade_color }}; color: white;">
+                {{ module.grade.value }}
+            </span>
+        </div>
+    </div>
+
+    {% if module.analysis_text %}
+    <div class="card">
+        <div class="analysis-text">{{ module.analysis_text }}</div>
+    </div>
+    {% endif %}
+
+    {% if module.strengths or module.weaknesses %}
+    <div class="grid-2">
+        {% if module.strengths %}
+        <div class="card">
+            <h3 class="strength">Strengths</h3>
+            {% for s in module.strengths %}
+            <div class="list-item">{{ s }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if module.weaknesses %}
+        <div class="card">
+            <h3 class="weakness">Areas for Improvement</h3>
+            {% for w in module.weaknesses %}
+            <div class="list-item">{{ w }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if module.recommendations %}
+    <h3>Recommendations</h3>
+    {% for rec in module.recommendations %}
+    <div class="rec-card">
+        <div class="rec-header">
+            <span class="rec-issue">{{ rec.issue }}</span>
+            <div>
+                <span class="badge impact-{{ rec.impact.value | lower }}">Impact: {{ rec.impact.value }}</span>
+                <span class="badge" style="background: var(--bg-card-hover);">Effort: {{ rec.effort.value }}</span>
+            </div>
+        </div>
+        <div class="rec-detail">{{ rec.recommendation }}</div>
+        {% if rec.implementation_steps %}
+        <div style="margin-top: 0.5rem;">
+            <strong style="font-size: 0.85rem;">Implementation Steps:</strong>
+            <ol style="color: var(--text-muted); font-size: 0.85rem; padding-left: 1.25rem; margin-top: 0.25rem;">
+                {% for step in rec.implementation_steps %}
+                <li>{{ step }}</li>
+                {% endfor %}
+            </ol>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
+{% endfor %}
+
+<!-- Top 20 Recommendations -->
+{% if recommendations %}
+<div class="section">
+    <h2>Prioritized Action Plan</h2>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+        Top {{ recommendations | length }} recommendations ranked by impact and effort.
+    </p>
+    {% for rec in recommendations %}
+    <div class="rec-card">
+        <div class="rec-header">
+            <div>
+                <span style="color: var(--text-muted); font-size: 0.8rem;">#{{ loop.index }}</span>
+                <span class="rec-area" style="margin-left: 0.5rem;">{{ rec.area }}</span>
+            </div>
+            <div>
+                <span class="badge impact-{{ rec.impact.value | lower }}">{{ rec.impact.value }} Impact</span>
+                <span class="badge" style="background: var(--bg-card-hover);">{{ rec.effort.value }} Effort</span>
+                {% if rec.timeline %}
+                <span class="badge" style="background: var(--primary); color: white;">{{ rec.timeline }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="rec-issue">{{ rec.issue }}</div>
+        <div class="rec-detail">{{ rec.recommendation }}</div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+</div>
+
+<div class="footer">
+    Generated by GTM Audit Platform &bull; Bhavsar Growth Consulting &bull; {{ report.audit_date }}
+</div>
+
+</body>
+</html>
