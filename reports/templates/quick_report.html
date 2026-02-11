@@ -3,128 +3,1080 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quick GTM Audit — {{ company_name }}</title>
+    <title>GTM Audit — {{ company_name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=Playfair+Display:ital,wght@0,700;0,800;1,600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #4F46E5;
-            --primary-light: #818CF8;
-            --success: #22C55E;
-            --warning: #EAB308;
-            --danger: #EF4444;
-            --bg: #0F172A;
-            --bg-card: #1E293B;
-            --text: #F8FAFC;
-            --text-muted: #94A3B8;
-            --border: #334155;
+            --ink: #0B0F1A;
+            --slate: #111827;
+            --card: #1A2035;
+            --card-alt: #1F2A42;
+            --border: #2A3550;
+            --border-light: #334766;
+            --text: #E8ECF4;
+            --text-mid: #9CABC4;
+            --text-dim: #5E7290;
+            --accent: #D4A853;
+            --accent-light: #E8C97A;
+            --accent-glow: rgba(212, 168, 83, 0.15);
+            --green: #34D399;
+            --green-dim: rgba(52, 211, 153, 0.12);
+            --red: #F87171;
+            --red-dim: rgba(248, 113, 113, 0.12);
+            --yellow: #FBBF24;
+            --yellow-dim: rgba(251, 191, 36, 0.12);
+            --blue: #60A5FA;
+            --blue-dim: rgba(96, 165, 250, 0.12);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: var(--bg);
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--ink);
             color: var(--text);
-            line-height: 1.6;
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 2rem;
+            line-height: 1.65;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .header {
+        .page { max-width: 960px; margin: 0 auto; padding: 0 2rem 4rem; }
+
+        /* ── HERO ──────────────────────────────────────────── */
+        .hero {
+            position: relative;
+            padding: 3.5rem 2rem 3rem;
             text-align: center;
-            padding: 2rem 0;
-            border-bottom: 2px solid var(--primary);
+            background: linear-gradient(170deg, #0D1321 0%, #15203A 40%, #1A2744 70%, #111827 100%);
+            border-bottom: 3px solid var(--accent);
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -60%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(212,168,83,0.06) 0%, transparent 65%);
+            pointer-events: none;
+        }
+        .hero-brand {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+        }
+        .hero h1 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 2.6rem;
+            font-weight: 800;
+            line-height: 1.15;
+            color: var(--text);
+            margin-bottom: 0.3rem;
+        }
+        .hero-company {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-style: italic;
+            color: var(--accent-light);
             margin-bottom: 2rem;
         }
-        .header h1 { font-size: 2rem; }
-        .header .subtitle { color: var(--primary-light); }
+        .hero-meta {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-top: 1.5rem;
+        }
+        .hero-meta a { color: var(--text-mid); text-decoration: none; }
 
-        .score-badge {
-            display: inline-block;
-            padding: 0.5rem 1.5rem;
-            border-radius: 12px;
-            font-size: 1.5rem;
+        /* Score ring */
+        .score-ring {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            border: 4px solid var(--border);
+            position: relative;
+            margin: 0.5rem 0;
+        }
+        .score-ring-fill {
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 4px solid transparent;
+            border-top-color: var(--accent);
+            border-right-color: var(--accent);
+            transform: rotate(45deg);
+        }
+        .score-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.8rem;
             font-weight: 800;
-            margin: 1rem 0;
+            line-height: 1;
+        }
+        .score-label {
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+        .grade-badge {
+            display: inline-block;
+            padding: 0.3rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            margin-top: 0.75rem;
         }
 
-        .section { margin-bottom: 2rem; }
-        .section h2 { font-size: 1.3rem; margin-bottom: 1rem; color: var(--primary-light); }
-
-        .card {
-            background: var(--bg-card);
-            border-radius: 10px;
-            padding: 1.25rem;
-            margin-bottom: 0.75rem;
-            border: 1px solid var(--border);
-        }
-
-        .rec-item {
-            padding: 0.75rem 0;
+        /* ── SECTIONS ──────────────────────────────────────── */
+        .section {
+            padding: 2.5rem 0;
             border-bottom: 1px solid var(--border);
         }
-        .rec-item:last-child { border-bottom: none; }
-        .rec-title { font-weight: 600; margin-bottom: 0.25rem; }
-        .rec-desc { color: var(--text-muted); font-size: 0.9rem; }
+        .section:last-child { border-bottom: none; }
 
+        .section-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+        }
+
+        /* ── CARDS ──────────────────────────────────────────── */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .card-alt {
+            background: var(--card-alt);
+        }
+
+        /* ── GRID ──────────────────────────────────────────── */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        /* ── EXECUTIVE SUMMARY PILLS ──────────────────────── */
+        .pill-list { list-style: none; }
+        .pill-list li {
+            padding: 0.6rem 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .pill-list li:last-child { border-bottom: none; }
+        .pill-list.strengths li::before {
+            content: '+';
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 5px;
+            background: var(--green-dim);
+            color: var(--green);
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-right: 0.6rem;
+            flex-shrink: 0;
+        }
+        .pill-list.gaps li::before {
+            content: '!';
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 5px;
+            background: var(--red-dim);
+            color: var(--red);
+            font-weight: 700;
+            font-size: 0.75rem;
+            margin-right: 0.6rem;
+            flex-shrink: 0;
+        }
+
+        /* ── QUICK WINS ────────────────────────────────────── */
+        .qw-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.6rem;
+        }
+        .qw-area {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+        .qw-issue {
+            font-weight: 600;
+            margin: 0.2rem 0;
+        }
+        .qw-rec {
+            font-size: 0.88rem;
+            color: var(--text-mid);
+        }
+
+        /* ── COMPANY PROFILE ───────────────────────────────── */
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .profile-item label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 0.3rem;
+        }
+        .profile-item .val {
+            font-size: 0.92rem;
+            color: var(--text);
+        }
+        .tag {
+            display: inline-block;
+            padding: 0.15rem 0.55rem;
+            border-radius: 4px;
+            background: var(--card-alt);
+            border: 1px solid var(--border);
+            font-size: 0.78rem;
+            color: var(--text-mid);
+            margin: 0.15rem 0.2rem 0.15rem 0;
+        }
+
+        /* ── MODULE HEADER ─────────────────────────────────── */
+        .mod-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .mod-header h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .mod-score-group {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .mod-pct {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+        }
+
+        /* ── SCORE BREAKDOWN TABLE ─────────────────────────── */
+        .score-table { width: 100%; border-collapse: collapse; margin-bottom: 1.25rem; }
+        .score-table th {
+            text-align: left;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .score-table td {
+            padding: 0.6rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.88rem;
+            vertical-align: middle;
+        }
+        .score-table tr:last-child td { border-bottom: none; }
+        .score-table .criterion { font-weight: 500; }
+        .score-table .score-val {
+            font-weight: 700;
+            font-family: 'DM Sans', sans-serif;
+            min-width: 45px;
+            text-align: right;
+        }
+        .score-table .notes-col {
+            color: var(--text-dim);
+            font-size: 0.82rem;
+        }
+
+        /* Progress bar */
+        .bar-track {
+            width: 100%;
+            min-width: 80px;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+
+        /* ── ANALYSIS TEXT ──────────────────────────────────── */
+        .analysis-text {
+            font-size: 0.92rem;
+            color: var(--text-mid);
+            line-height: 1.7;
+            white-space: pre-line;
+            padding: 1.25rem 1.5rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 1.25rem;
+        }
+
+        /* ── STRENGTHS / WEAKNESSES ────────────────────────── */
+        .sw-card {
+            padding: 1.25rem 1.5rem;
+        }
+        .sw-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+        }
+        .sw-title.green { color: var(--green); }
+        .sw-title.red { color: var(--red); }
+        .sw-list { list-style: none; }
+        .sw-list li {
+            padding: 0.45rem 0;
+            font-size: 0.88rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-mid);
+        }
+        .sw-list li:last-child { border-bottom: none; }
+
+        /* ── RECOMMENDATION CARDS ──────────────────────────── */
+        .rec {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 0.75rem;
+            position: relative;
+        }
+        .rec-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 0.4rem;
+            flex-wrap: wrap;
+        }
+        .rec-issue {
+            font-weight: 600;
+            font-size: 0.95rem;
+            flex: 1;
+        }
+        .rec-badges { display: flex; gap: 0.35rem; flex-shrink: 0; flex-wrap: wrap; }
+        .badge-sm {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+        .badge-impact-High { background: var(--red-dim); color: var(--red); }
+        .badge-impact-Medium { background: var(--yellow-dim); color: var(--yellow); }
+        .badge-impact-Low { background: var(--green-dim); color: var(--green); }
+        .badge-effort { background: var(--blue-dim); color: var(--blue); }
+        .badge-timeline { background: var(--accent-glow); color: var(--accent); }
+
+        .rec-body {
+            font-size: 0.88rem;
+            color: var(--text-mid);
+            margin-bottom: 0.5rem;
+        }
+        .rec-context {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin: 0.75rem 0;
+        }
+        .rec-ctx-box {
+            padding: 0.6rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.82rem;
+        }
+        .rec-ctx-box.current {
+            background: var(--red-dim);
+            border: 1px solid rgba(248,113,113,0.15);
+        }
+        .rec-ctx-box.best {
+            background: var(--green-dim);
+            border: 1px solid rgba(52,211,153,0.15);
+        }
+        .rec-ctx-label {
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 0.2rem;
+        }
+        .rec-ctx-label.current { color: var(--red); }
+        .rec-ctx-label.best { color: var(--green); }
+
+        .rec-steps {
+            margin-top: 0.6rem;
+            padding-top: 0.6rem;
+            border-top: 1px solid var(--border);
+        }
+        .rec-steps-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 0.4rem;
+        }
+        .rec-steps ol {
+            padding-left: 1.2rem;
+            color: var(--text-mid);
+            font-size: 0.84rem;
+        }
+        .rec-steps ol li {
+            padding: 0.15rem 0;
+        }
+        .rec-metrics {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        /* ── COMPETITOR TABLE ──────────────────────────────── */
+        .comp-table { width: 100%; border-collapse: collapse; }
+        .comp-table th {
+            text-align: left;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            padding: 0.6rem 0.75rem;
+            border-bottom: 2px solid var(--border);
+        }
+        .comp-table td {
+            padding: 0.7rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+            vertical-align: top;
+        }
+        .comp-table tr:last-child td { border-bottom: none; }
+        .comp-name { font-weight: 600; color: var(--text); }
+        .comp-url { font-size: 0.78rem; color: var(--text-dim); }
+        .overlap-High { color: var(--red); }
+        .overlap-Medium { color: var(--yellow); }
+        .overlap-Low { color: var(--green); }
+
+        /* ── MESSAGING CALLOUT ─────────────────────────────── */
+        .vp-callout {
+            border: 2px solid var(--accent);
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1rem;
+            background: var(--accent-glow);
+        }
+        .vp-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 0.3rem;
+        }
+        .vp-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            font-style: italic;
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        /* ── ACTION PLAN ───────────────────────────────────── */
+        .action-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .action-row:last-child { border-bottom: none; }
+        .action-num {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--accent);
+            min-width: 28px;
+            line-height: 1;
+            padding-top: 2px;
+        }
+        .action-content { flex: 1; }
+        .action-area {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+        .action-issue {
+            font-weight: 600;
+            font-size: 0.92rem;
+            margin: 0.15rem 0;
+        }
+        .action-rec {
+            font-size: 0.85rem;
+            color: var(--text-mid);
+        }
+
+        /* ── EDITABLE ──────────────────────────────────────── */
+        [contenteditable="true"] {
+            outline: none;
+            transition: box-shadow 0.2s ease;
+        }
+        [contenteditable="true"]:hover {
+            box-shadow: inset 0 0 0 1px var(--border-light);
+            border-radius: 4px;
+        }
+        [contenteditable="true"]:focus {
+            box-shadow: inset 0 0 0 2px var(--accent);
+            border-radius: 4px;
+        }
+
+        /* ── PRINT BUTTON ──────────────────────────────────── */
+        .print-btn {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            padding: 0.6rem 1.2rem;
+            background: var(--accent);
+            color: var(--ink);
+            border: none;
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(212,168,83,0.3);
+            z-index: 100;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .print-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(212,168,83,0.4);
+        }
+
+        /* ── FOOTER ────────────────────────────────────────── */
         .footer {
             text-align: center;
-            padding: 2rem;
-            color: var(--text-muted);
-            font-size: 0.85rem;
+            padding: 2.5rem 0;
+            color: var(--text-dim);
+            font-size: 0.78rem;
+            letter-spacing: 0.03em;
+        }
+        .footer-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1rem;
+            color: var(--text-mid);
+            margin-bottom: 0.3rem;
+        }
+
+        /* ── RESPONSIVE ────────────────────────────────────── */
+        @media (max-width: 700px) {
+            .hero h1 { font-size: 1.8rem; }
+            .hero-company { font-size: 1.15rem; }
+            .grid-2, .profile-grid, .rec-context { grid-template-columns: 1fr; }
+            .mod-header { flex-direction: column; align-items: flex-start; }
+            .page { padding: 0 1rem 3rem; }
+        }
+
+        /* ── PRINT ─────────────────────────────────────────── */
+        @media print {
+            body { background: #fff; color: #111; }
+            .hero { background: #f8f9fa; border-bottom-color: #D4A853; }
+            .hero h1, .hero-company, .score-number { color: #111; }
+            .card, .rec, .analysis-text, .qw-card, .vp-callout {
+                background: #f8f9fa;
+                border-color: #ddd;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .section { border-color: #ddd; }
+            .print-btn { display: none; }
+            [contenteditable="true"]:hover,
+            [contenteditable="true"]:focus { box-shadow: none; }
         }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h1>Quick GTM Audit</h1>
-    <div class="subtitle">{{ company_name }}</div>
-    <div class="score-badge" style="background: {{ overall_score | score_color }}20; color: {{ overall_score | score_color }};">
-        {{ "%.0f" | format(overall_score) }}/100 — {{ overall_grade }}
+<button class="print-btn" onclick="window.print()">&#9998; Print / Save PDF</button>
+
+<!-- ════════════════════════════════════════════════════════ HERO -->
+<div class="hero">
+    <div class="hero-brand">Bhavsar Growth Consulting</div>
+    <h1>GTM Audit Report</h1>
+    <div class="hero-company">{{ company_name }}</div>
+
+    <div class="score-ring">
+        <div class="score-ring-fill"></div>
+        <div style="text-align:center;">
+            <div class="score-number" style="color: {{ overall_score | score_color }};">{{ "%.0f" | format(overall_score) }}</div>
+            <div class="score-label">GTM Score</div>
+        </div>
     </div>
-    <div style="color: var(--text-muted); font-size: 0.85rem;">
-        {{ company_url }} &bull; {{ report.audit_date }}
+
+    <div>
+        <span class="grade-badge" style="background: {{ overall_grade | grade_color }}; color: white;">
+            Grade: {{ overall_grade }}
+        </span>
+    </div>
+
+    <div class="hero-meta">
+        <a href="{{ company_url }}">{{ company_url }}</a> &nbsp;&middot;&nbsp; {{ report.audit_date }} &nbsp;&middot;&nbsp; {{ report.audit_type | capitalize }} Audit
     </div>
 </div>
 
-{% if quick_wins %}
+<div class="page">
+
+<!-- ════════════════════════════════════════════════════════ EXECUTIVE SUMMARY -->
+{% if strengths or critical_gaps or quick_wins %}
 <div class="section">
-    <h2>Quick Wins</h2>
-    <div class="card">
-        {% for rec in quick_wins %}
-        <div class="rec-item">
-            <div class="rec-title">{{ rec.area }}: {{ rec.issue }}</div>
-            <div class="rec-desc">{{ rec.recommendation }}</div>
+    <div class="section-label">Overview</div>
+    <div class="section-title">Executive Summary</div>
+
+    {% if strengths or critical_gaps %}
+    <div class="grid-2" style="margin-bottom: 1.25rem;">
+        {% if strengths %}
+        <div class="card sw-card">
+            <div class="sw-title green">Top Strengths</div>
+            <ul class="pill-list strengths">
+                {% for s in strengths %}
+                <li contenteditable="true">{{ s }}</li>
+                {% endfor %}
+            </ul>
         </div>
-        {% endfor %}
+        {% endif %}
+        {% if critical_gaps %}
+        <div class="card sw-card">
+            <div class="sw-title red">Critical Gaps</div>
+            <ul class="pill-list gaps">
+                {% for g in critical_gaps %}
+                <li contenteditable="true">{{ g }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
     </div>
+    {% endif %}
+
+    {% if quick_wins %}
+    <div class="section-label" style="margin-top:0.5rem;">Quick Wins</div>
+    {% for rec in quick_wins %}
+    <div class="qw-card">
+        <div class="qw-area">{{ rec.area }}</div>
+        <div class="qw-issue">{{ rec.issue }}</div>
+        <div class="qw-rec" contenteditable="true">{{ rec.recommendation }}</div>
+    </div>
+    {% endfor %}
+    {% endif %}
 </div>
 {% endif %}
 
-{% for module in modules %}
+<!-- ════════════════════════════════════════════════════════ COMPANY PROFILE -->
+{% if company_profile %}
 <div class="section">
-    <h2>{{ module.name }} — {{ "%.0f" | format(module.percentage) }}% ({{ module.grade.value }})</h2>
-    {% if module.analysis_text %}
-    <div class="card">
-        <div style="color: var(--text-muted); white-space: pre-line;">{{ module.analysis_text }}</div>
+    <div class="section-label">Background</div>
+    <div class="section-title">Company Profile</div>
+
+    {% if company_profile.value_proposition %}
+    <div class="vp-callout">
+        <div class="vp-label">Value Proposition</div>
+        <div class="vp-text" contenteditable="true">{{ company_profile.value_proposition }}</div>
     </div>
     {% endif %}
-    {% if module.recommendations %}
-    <div class="card">
-        {% for rec in module.recommendations[:3] %}
-        <div class="rec-item">
-            <div class="rec-title">{{ rec.issue }}</div>
-            <div class="rec-desc">{{ rec.recommendation }}</div>
+
+    <div class="profile-grid">
+        {% if company_profile.industry %}
+        <div class="profile-item">
+            <label>Industry</label>
+            <div class="val">{{ company_profile.industry }}</div>
         </div>
-        {% endfor %}
+        {% endif %}
+        {% if company_profile.category %}
+        <div class="profile-item">
+            <label>Category</label>
+            <div class="val">{{ company_profile.category }}</div>
+        </div>
+        {% endif %}
+        {% if company_profile.target_market %}
+        <div class="profile-item">
+            <label>Target Market</label>
+            <div class="val">{{ company_profile.target_market }}</div>
+        </div>
+        {% endif %}
+        {% if company_profile.business_model and company_profile.business_model.pricing_model %}
+        <div class="profile-item">
+            <label>Pricing Model</label>
+            <div class="val">{{ company_profile.business_model.pricing_model | capitalize }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if company_profile.products %}
+    <div style="margin-top:1rem;">
+        <div class="profile-item">
+            <label>Products &amp; Services</label>
+            <div>
+                {% for p in company_profile.products %}
+                <span class="tag">{{ p }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if company_profile.target_audience %}
+    <div style="margin-top:1rem;">
+        {% if company_profile.target_audience.industries %}
+        <div class="profile-item" style="margin-bottom:0.6rem;">
+            <label>Target Industries</label>
+            <div>
+                {% for ind in company_profile.target_audience.industries %}
+                <span class="tag">{{ ind }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% if company_profile.target_audience.roles %}
+        <div class="profile-item">
+            <label>Target Roles</label>
+            <div>
+                {% for role in company_profile.target_audience.roles %}
+                <span class="tag">{{ role }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if company_profile.proof_points %}
+    <div style="margin-top:1rem;">
+        {% if company_profile.proof_points.metrics %}
+        <div class="profile-item" style="margin-bottom:0.6rem;">
+            <label>Key Metrics</label>
+            <div>
+                {% for m in company_profile.proof_points.metrics %}
+                <span class="tag">{{ m }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% if company_profile.proof_points.integrations %}
+        <div class="profile-item">
+            <label>Integrations</label>
+            <div>
+                {% for ig in company_profile.proof_points.integrations %}
+                <span class="tag">{{ ig }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 </div>
+{% endif %}
+
+<!-- ════════════════════════════════════════════════════════ MODULE SECTIONS -->
+{% for module in modules %}
+{% if module.items %}
+<div class="section">
+    <div class="section-label">Module Analysis</div>
+    <div class="mod-header">
+        <h2>{{ module.name }}</h2>
+        <div class="mod-score-group">
+            <span class="mod-pct" style="color: {{ module.percentage | score_color }};">{{ "%.0f" | format(module.percentage) }}%</span>
+            <span class="grade-badge" style="background: {{ module.grade.value | grade_color }}; color: white; font-size:0.8rem; padding:0.2rem 0.7rem;">
+                {{ module.grade.value }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Score Breakdown -->
+    {% if module.items | length > 1 %}
+    <div class="card" style="overflow-x:auto;">
+        <table class="score-table">
+            <thead>
+                <tr>
+                    <th>Criterion</th>
+                    <th style="width:100px;">Progress</th>
+                    <th style="width:55px;">Score</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in module.items %}
+                <tr>
+                    <td class="criterion">{{ item.name }}</td>
+                    <td>
+                        <div class="bar-track">
+                            <div class="bar-fill" style="width:{{ item.percentage }}%; background:{{ item.percentage | score_color }};"></div>
+                        </div>
+                    </td>
+                    <td class="score-val" style="color:{{ item.percentage | score_color }};">{{ "%.0f" | format(item.percentage) }}</td>
+                    <td class="notes-col" contenteditable="true">{{ item.notes }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Analysis -->
+    {% if module.analysis_text %}
+    <div class="analysis-text" contenteditable="true">{{ module.analysis_text }}</div>
+    {% endif %}
+
+    <!-- Module-specific: Messaging -->
+    {% if module.extra_data.get('current_value_proposition') %}
+    <div class="vp-callout">
+        <div class="vp-label">Current Value Proposition</div>
+        <div class="vp-text" contenteditable="true">{{ module.extra_data.current_value_proposition }}</div>
+    </div>
+    {% endif %}
+    {% if module.extra_data.get('messaging_pillars') %}
+    <div style="margin-bottom:1rem;">
+        <div class="section-label">Messaging Pillars</div>
+        <div>
+            {% for pillar in module.extra_data.messaging_pillars %}
+            <span class="tag">{{ pillar }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Module-specific: Competitors -->
+    {% if module.extra_data.get('competitors') %}
+    <div class="card" style="overflow-x:auto; margin-bottom:1rem;">
+        <div class="section-label" style="margin-bottom:0.6rem;">Competitive Landscape</div>
+        <table class="comp-table">
+            <thead>
+                <tr>
+                    <th>Competitor</th>
+                    <th>Positioning</th>
+                    <th>Overlap</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for comp in module.extra_data.competitors %}
+                <tr>
+                    <td>
+                        <div class="comp-name">{{ comp.name }}</div>
+                        {% if comp.url %}<div class="comp-url">{{ comp.url }}</div>{% endif %}
+                    </td>
+                    <td contenteditable="true">{{ comp.positioning }}</td>
+                    <td class="overlap-{{ comp.market_overlap | default('Medium') }}">
+                        {{ comp.market_overlap | default('Medium') }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if module.extra_data.get('market_gaps') %}
+    <div style="margin-bottom:1rem;">
+        <div class="section-label">Market Gaps &amp; Opportunities</div>
+        <div class="card">
+            <ul class="sw-list">
+                {% for gap in module.extra_data.market_gaps %}
+                <li contenteditable="true">{{ gap }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if module.extra_data.get('differentiation_opportunities') %}
+    <div style="margin-bottom:1rem;">
+        <div class="section-label">Differentiation Opportunities</div>
+        <div class="card">
+            <ul class="sw-list">
+                {% for d in module.extra_data.differentiation_opportunities %}
+                <li contenteditable="true">{{ d }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Strengths / Weaknesses -->
+    {% if module.strengths or module.weaknesses %}
+    <div class="grid-2">
+        {% if module.strengths %}
+        <div class="card sw-card">
+            <div class="sw-title green">Strengths</div>
+            <ul class="sw-list">
+                {% for s in module.strengths %}
+                <li contenteditable="true">{{ s }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% if module.weaknesses %}
+        <div class="card sw-card">
+            <div class="sw-title red">Areas for Improvement</div>
+            <ul class="sw-list">
+                {% for w in module.weaknesses %}
+                <li contenteditable="true">{{ w }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Recommendations -->
+    {% if module.recommendations %}
+    <div class="section-label" style="margin-top:1.25rem; margin-bottom:0.75rem;">Recommendations</div>
+    {% for rec in module.recommendations %}
+    <div class="rec">
+        <div class="rec-top">
+            <div class="rec-issue">{{ rec.issue }}</div>
+            <div class="rec-badges">
+                <span class="badge-sm badge-impact-{{ rec.impact.value }}">{{ rec.impact.value }} Impact</span>
+                <span class="badge-sm badge-effort">{{ rec.effort.value }} Effort</span>
+                {% if rec.timeline %}
+                <span class="badge-sm badge-timeline">{{ rec.timeline }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="rec-body" contenteditable="true">{{ rec.recommendation }}</div>
+
+        {% if rec.current_state or rec.best_practice %}
+        <div class="rec-context">
+            {% if rec.current_state %}
+            <div class="rec-ctx-box current">
+                <div class="rec-ctx-label current">Current State</div>
+                <div contenteditable="true">{{ rec.current_state }}</div>
+            </div>
+            {% endif %}
+            {% if rec.best_practice %}
+            <div class="rec-ctx-box best">
+                <div class="rec-ctx-label best">Best Practice</div>
+                <div contenteditable="true">{{ rec.best_practice }}</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if rec.implementation_steps %}
+        <div class="rec-steps">
+            <div class="rec-steps-label">Implementation Steps</div>
+            <ol>
+                {% for step in rec.implementation_steps %}
+                <li contenteditable="true">{{ step }}</li>
+                {% endfor %}
+            </ol>
+        </div>
+        {% endif %}
+
+        {% if rec.success_metrics %}
+        <div class="rec-metrics">
+            <strong>Success Metrics:</strong>
+            {% for m in rec.success_metrics %}
+            <span class="tag">{{ m }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+</div>
+{% endif %}
 {% endfor %}
 
+<!-- Company Profile module (non-scored — analysis text only) -->
+{% for module in modules %}
+{% if not module.items and module.analysis_text %}
+<div class="section">
+    <div class="section-label">Research</div>
+    <div class="section-title">{{ module.name }}</div>
+    <div class="analysis-text" contenteditable="true">{{ module.analysis_text }}</div>
+</div>
+{% endif %}
+{% endfor %}
+
+<!-- ════════════════════════════════════════════════════════ ACTION PLAN -->
+{% if recommendations %}
+<div class="section">
+    <div class="section-label">Prioritized</div>
+    <div class="section-title">Action Plan</div>
+    <p style="color: var(--text-dim); font-size: 0.88rem; margin-bottom: 1.25rem;">
+        Top {{ recommendations | length }} recommendations ranked by impact-to-effort ratio.
+    </p>
+
+    {% for rec in recommendations %}
+    <div class="action-row">
+        <div class="action-num">{{ loop.index }}</div>
+        <div class="action-content">
+            <div class="action-area">{{ rec.area }}</div>
+            <div class="action-issue">{{ rec.issue }}</div>
+            <div class="action-rec" contenteditable="true">{{ rec.recommendation }}</div>
+        </div>
+        <div class="rec-badges" style="padding-top:0.15rem;">
+            <span class="badge-sm badge-impact-{{ rec.impact.value }}">{{ rec.impact.value }}</span>
+            <span class="badge-sm badge-effort">{{ rec.effort.value }}</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- ════════════════════════════════════════════════════════ FOOTER -->
 <div class="footer">
-    Generated by GTM Audit Platform &bull; Bhavsar Growth Consulting &bull; {{ report.audit_date }}
+    <div class="footer-brand">Bhavsar Growth Consulting</div>
+    GTM Audit Platform &nbsp;&middot;&nbsp; {{ report.audit_date }}
 </div>
 
+</div>
 </body>
 </html>

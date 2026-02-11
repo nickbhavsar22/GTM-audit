@@ -73,11 +73,16 @@ class ReportAgent(BaseAgent):
 
         await self.update_progress(60, "Rendering HTML report")
 
+        # Gather company profile for template
+        company_profile = None
+        if company_data and company_data.get("status") == "completed":
+            company_profile = company_data.get("result_data", {})
+
         # Render HTML
         from reports.renderer import ReportRenderer
 
         renderer = ReportRenderer()
-        html_content = renderer.render_html(report)
+        html_content = renderer.render_html(report, company_profile=company_profile)
 
         await self.update_progress(75, "Generating Markdown export")
 
@@ -171,6 +176,15 @@ class ReportAgent(BaseAgent):
         # Extract strengths/weaknesses
         module.strengths = result_data.get("strengths", [])
         module.weaknesses = result_data.get("weaknesses", [])
+
+        # Carry agent-specific data for rich template rendering
+        extra_keys = {
+            "competitor": ["competitors", "market_gaps", "differentiation_opportunities"],
+            "messaging": ["current_value_proposition", "messaging_pillars"],
+        }
+        for key in extra_keys.get(agent_name, []):
+            if key in result_data:
+                module.extra_data[key] = result_data[key]
 
         return module
 

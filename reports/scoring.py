@@ -76,6 +76,7 @@ class ModuleScore:
     strengths: list[str] = field(default_factory=list)
     weaknesses: list[str] = field(default_factory=list)
     screenshots: list[str] = field(default_factory=list)  # Screenshot references
+    extra_data: dict = field(default_factory=dict)  # Agent-specific data (competitors, pillars, etc.)
 
     @property
     def percentage(self) -> float:

@@ -23,7 +23,7 @@ class ReportRenderer:
         self.env.filters["score_color"] = self._score_color
         self.env.filters["grade_color"] = self._grade_color
 
-    def render_html(self, report: AuditReport) -> str:
+    def render_html(self, report: AuditReport, company_profile: dict | None = None) -> str:
         """Render full HTML report."""
         template_name = (
             "quick_report.html"
@@ -42,6 +42,7 @@ class ReportRenderer:
             quick_wins=report.get_quick_wins(5),
             strengths=report.get_top_strengths(5),
             critical_gaps=report.get_critical_gaps(5),
+            company_profile=company_profile or {},
         )
 
     @staticmethod

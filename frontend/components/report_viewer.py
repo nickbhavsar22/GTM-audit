@@ -66,6 +66,6 @@ def render_report_viewer(audit_id: str) -> None:
 
     # Render HTML report inline
     if html_content:
-        st.components.v1.html(html_content, height=800, scrolling=True)
+        st.components.v1.html(html_content, height=2000, scrolling=True)
     else:
         st.info("No report content available.")
