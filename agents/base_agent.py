@@ -1,7 +1,9 @@
 """Abstract base class for all GTM audit agents."""
 
 import asyncio
+import json
 import logging
+import re
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
@@ -249,3 +251,30 @@ class BaseAgent(ABC):
         except Exception as e:
             self._last_error = f"{type(e).__name__}: {e}"
             raise
+
+    def parse_json(self, text: str) -> dict | None:
+        """Parse JSON from LLM response, handling markdown code fences."""
+        # Strip markdown code fences if present
+        cleaned = text.strip()
+        if cleaned.startswith("```"):
+            # Remove opening fence (```json or ```)
+            cleaned = re.sub(r"^```(?:json)?\s*\n?", "", cleaned)
+            # Remove closing fence
+            cleaned = re.sub(r"\n?```\s*$", "", cleaned)
+
+        # Try direct parse
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+
+        # Try to extract JSON object with regex
+        match = re.search(r"\{[\s\S]*\}", cleaned)
+        if match:
+            try:
+                return json.loads(match.group())
+            except json.JSONDecodeError:
+                pass
+
+        logger.warning(f"[{self.agent_name}] Failed to parse JSON from response ({len(text)} chars)")
+        return None

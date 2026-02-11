@@ -96,7 +96,7 @@ class CompetitorAgent(BaseAgent):
 
         try:
             response = await self.call_llm_json(prompt, system=COMPETITOR_SYSTEM)
-            result = self._parse_json(response)
+            result = self.parse_json(response)
 
             if not result:
                 logger.error(f"Competitor JSON parse failed. Response preview: {response[:500]}")

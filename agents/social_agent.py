@@ -87,7 +87,7 @@ class SocialAgent(BaseAgent):
 
         try:
             response = await self.call_llm_json(prompt, system=SOCIAL_SYSTEM)
-            result = self._parse_json(response)
+            result = self.parse_json(response)
 
             if not result:
                 return self._fallback_result()

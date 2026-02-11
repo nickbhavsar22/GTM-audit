@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     # LLM Config
     llm_model: str = "claude-sonnet-4-5-20250929"
-    llm_max_tokens: int = 4000
+    llm_max_tokens: int = 8000
 
     # Audit Config
     max_pages_full: int = 30
