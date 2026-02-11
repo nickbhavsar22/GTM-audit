@@ -86,7 +86,7 @@ class VisualDesignAgent(BaseAgent):
         )
 
         try:
-            response = await self.call_llm(prompt, system=DESIGN_SYSTEM)
+            response = await self.call_llm_json(prompt, system=DESIGN_SYSTEM)
             result = self._parse_json(response)
 
             if not result:

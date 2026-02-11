@@ -103,7 +103,7 @@ class ICPAgent(BaseAgent):
         )
 
         try:
-            response = await self.call_llm(prompt, system=ICP_SYSTEM)
+            response = await self.call_llm_json(prompt, system=ICP_SYSTEM)
             result = self._parse_json(response)
 
             if not result:

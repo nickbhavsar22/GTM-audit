@@ -95,10 +95,12 @@ class CompetitorAgent(BaseAgent):
         )
 
         try:
-            response = await self.call_llm(prompt, system=COMPETITOR_SYSTEM)
+            response = await self.call_llm_json(prompt, system=COMPETITOR_SYSTEM)
             result = self._parse_json(response)
 
             if not result:
+                logger.error(f"Competitor JSON parse failed. Response preview: {response[:500]}")
+                self._last_error = f"JSON parse failed. Response starts: {response[:200]}"
                 return self._fallback_result()
 
             # Store competitors in context for other agents

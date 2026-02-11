@@ -85,10 +85,12 @@ class MessagingAgent(BaseAgent):
         )
 
         try:
-            response = await self.call_llm(prompt, system=MESSAGING_SYSTEM)
+            response = await self.call_llm_json(prompt, system=MESSAGING_SYSTEM)
             result = self._parse_json(response)
 
             if not result:
+                logger.error(f"Messaging JSON parse failed. Response preview: {response[:500]}")
+                self._last_error = f"JSON parse failed. Response starts: {response[:200]}"
                 return self._fallback_result()
 
             await self.update_progress(85, "Compiling messaging report")

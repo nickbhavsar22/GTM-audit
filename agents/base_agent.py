@@ -173,10 +173,12 @@ class BaseAgent(ABC):
                     "status": "completed",
                     **result,
                 }
-                # If agent used fallback (indicated by fallback key in result_data),
-                # include the last error for diagnostics
-                if self._last_error and result.get("result_data", {}).get("fallback"):
+                # If agent used fallback and had an error, include it for diagnostics
+                if result.get("result_data", {}).get("fallback") and self._last_error:
                     output["error"] = f"Fallback: {self._last_error}"
+                    logger.warning(f"[{self.agent_name}] Used fallback: {self._last_error}")
+                elif result.get("result_data", {}).get("fallback"):
+                    logger.info(f"[{self.agent_name}] Used fallback path (no error)")
 
                 await self.context.set_analysis(self.agent_name, output)
                 self._persist_result(output)
@@ -232,6 +234,18 @@ class BaseAgent(ABC):
             raise RuntimeError(err)
         try:
             return await self.llm.complete(prompt, system=system)
+        except Exception as e:
+            self._last_error = f"{type(e).__name__}: {e}"
+            raise
+
+    async def call_llm_json(self, prompt: str, system: str = "") -> str:
+        """Call the Claude API expecting JSON output. Adds JSON-only instruction."""
+        if not self.llm:
+            err = f"[{self.agent_name}] No LLM client configured"
+            self._last_error = err
+            raise RuntimeError(err)
+        try:
+            return await self.llm.complete_with_json(prompt, system=system)
         except Exception as e:
             self._last_error = f"{type(e).__name__}: {e}"
             raise

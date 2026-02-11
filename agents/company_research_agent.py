@@ -77,11 +77,13 @@ class CompanyResearchAgent(BaseAgent):
         )
 
         try:
-            response = await self.call_llm(prompt, system=COMPANY_RESEARCH_SYSTEM)
+            response = await self.call_llm_json(prompt, system=COMPANY_RESEARCH_SYSTEM)
 
             # Parse JSON from response
             profile = self._parse_json(response)
             if not profile:
+                logger.error(f"Company profile JSON parse failed. Response preview: {response[:500]}")
+                self._last_error = f"JSON parse failed. Response starts: {response[:200]}"
                 return self._empty_result("Failed to parse company profile")
 
             # Store in context for other agents

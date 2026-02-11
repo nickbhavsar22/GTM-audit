@@ -90,7 +90,7 @@ class ConversionAgent(BaseAgent):
         )
 
         try:
-            response = await self.call_llm(prompt, system=CRO_SYSTEM)
+            response = await self.call_llm_json(prompt, system=CRO_SYSTEM)
             result = self._parse_json(response)
 
             if not result:
