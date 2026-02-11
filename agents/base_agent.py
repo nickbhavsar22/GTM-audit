@@ -241,13 +241,18 @@ class BaseAgent(ABC):
             raise
 
     async def call_llm_json(self, prompt: str, system: str = "") -> str:
-        """Call the Claude API expecting JSON output. Adds JSON-only instruction."""
+        """Call the Claude API expecting JSON output. Adds JSON-only instruction.
+
+        Uses max_tokens=8000 to prevent JSON truncation regardless of global setting.
+        """
         if not self.llm:
             err = f"[{self.agent_name}] No LLM client configured"
             self._last_error = err
             raise RuntimeError(err)
         try:
-            return await self.llm.complete_with_json(prompt, system=system)
+            return await self.llm.complete_with_json(
+                prompt, system=system, max_tokens=8000
+            )
         except Exception as e:
             self._last_error = f"{type(e).__name__}: {e}"
             raise
