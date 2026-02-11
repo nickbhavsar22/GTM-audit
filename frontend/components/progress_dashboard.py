@@ -27,7 +27,7 @@ def render_progress_dashboard(audit_id: str) -> None:
     overall_status = status_data.status
 
     if overall_status == "completed":
-        st.success("Audit completed!")
+        st.success("Audit completed! (v6)")
         # Show any diagnostic info (e.g. LLM async test failures)
         if status_data.error_message:
             st.warning(f"Diagnostic: {status_data.error_message}")

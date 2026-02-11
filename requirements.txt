@@ -1,4 +1,4 @@
-# Frontend (v3 rebuild)
+# Frontend (v6 - max_tokens fix)
 streamlit>=1.31.0
 
 # Database
