@@ -22,6 +22,7 @@ if not check_password():
     st.stop()
 
 st.title("New Audit")
+st.caption("v2 — diagnostics enabled")
 
 # If an audit is active, show progress dashboard
 active_audit = st.session_state.get("active_audit_id")
