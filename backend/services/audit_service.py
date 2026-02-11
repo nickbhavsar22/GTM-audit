@@ -108,6 +108,7 @@ class AuditService:
 
             # Import here to avoid circular imports
             from agents.context_store import ContextStore
+            from agents.llm_client import LLMClient
             from agents.message_bus import MessageBus
             from agents.orchestrator import ProjectLead
 
@@ -117,10 +118,12 @@ class AuditService:
                 audit_type=audit.audit_type.value if audit.audit_type else "full",
             )
             bus = MessageBus()
+            llm = LLMClient()
 
             orchestrator = ProjectLead(
                 context=context,
                 message_bus=bus,
+                llm_client=llm,
                 db_session=db,
             )
             await orchestrator.run_audit()

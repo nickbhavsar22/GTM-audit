@@ -21,6 +21,11 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Warn if API key is missing
+from config.settings import get_settings as _get_settings
+if not _get_settings().anthropic_api_key:
+    st.warning("ANTHROPIC_API_KEY not configured. Audits will produce limited results. Add it in Settings > Secrets on Streamlit Cloud.")
+
 # Auth gate
 if not check_password():
     st.stop()
