@@ -47,10 +47,10 @@ def render_audit_history() -> None:
                 if status == "completed":
                     if st.button("View Report", key=f"view_{audit_id}"):
                         st.session_state["view_audit_id"] = audit_id
-                        st.switch_page("frontend/pages/2_View_Reports.py")
+                        st.switch_page("pages/2_View_Reports.py")
                 elif status == "running":
                     if st.button("View Progress", key=f"progress_{audit_id}"):
                         st.session_state["active_audit_id"] = audit_id
-                        st.switch_page("frontend/pages/1_New_Audit.py")
+                        st.switch_page("pages/1_New_Audit.py")
 
             st.markdown("---")

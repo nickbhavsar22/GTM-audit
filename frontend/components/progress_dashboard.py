@@ -40,11 +40,11 @@ def render_progress_dashboard(audit_id: str) -> None:
                 st.markdown("")  # spacer
                 if st.button("View Full Report", type="primary", use_container_width=True):
                     st.session_state["view_audit_id"] = audit_id
-                    st.switch_page("frontend/pages/2_View_Reports.py")
+                    st.switch_page("pages/2_View_Reports.py")
         else:
             if st.button("View Report", type="primary"):
                 st.session_state["view_audit_id"] = audit_id
-                st.switch_page("frontend/pages/2_View_Reports.py")
+                st.switch_page("pages/2_View_Reports.py")
         return
 
     if overall_status == "failed":

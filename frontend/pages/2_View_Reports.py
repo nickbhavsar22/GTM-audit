@@ -35,17 +35,17 @@ if audit_id:
         if st.button("Start New Audit"):
             st.session_state.pop("view_audit_id", None)
             st.session_state.pop("active_audit_id", None)
-            st.switch_page("frontend/pages/1_New_Audit.py")
+            st.switch_page("pages/1_New_Audit.py")
     with col2:
         if st.button("Audit History"):
             st.session_state.pop("view_audit_id", None)
-            st.switch_page("frontend/pages/3_Audit_History.py")
+            st.switch_page("pages/3_Audit_History.py")
 else:
     st.info("No audit selected. Start a new audit or pick one from history.")
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Start New Audit", type="primary"):
-            st.switch_page("frontend/pages/1_New_Audit.py")
+            st.switch_page("pages/1_New_Audit.py")
     with col2:
         if st.button("Audit History"):
-            st.switch_page("frontend/pages/3_Audit_History.py")
+            st.switch_page("pages/3_Audit_History.py")
