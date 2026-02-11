@@ -120,17 +120,6 @@ class AuditService:
             bus = MessageBus()
             llm = LLMClient()
 
-            # Test LLM connectivity in async context (always store result for diagnostics)
-            try:
-                test_resp = await llm.complete("Say OK", system="Respond with just OK")
-                audit.error_message = f"[v3] LLM async OK: {test_resp[:30].strip()}"
-                db.commit()
-                logger.info(f"LLM test in async context OK: {test_resp[:50]}")
-            except Exception as llm_err:
-                logger.error(f"LLM test FAILED in async context: {llm_err}")
-                audit.error_message = f"[v3] LLM async FAILED: {type(llm_err).__name__}: {llm_err}"
-                db.commit()
-
             orchestrator = ProjectLead(
                 context=context,
                 message_bus=bus,

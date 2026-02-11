@@ -23,31 +23,6 @@ if not check_password():
 
 st.title("New Audit")
 
-# Inline LLM diagnostic (temporary)
-try:
-    from config.settings import get_settings
-    _s = get_settings()
-    _key_info = f"Key: {'set (...' + _s.anthropic_api_key[-8:] + ')' if _s.anthropic_api_key else 'MISSING'}"
-    _model_info = f"Model: {_s.llm_model}"
-    st.info(f"Config: {_key_info} | {_model_info}")
-
-    if _s.anthropic_api_key:
-        try:
-            import anthropic
-            _client = anthropic.Anthropic(api_key=_s.anthropic_api_key)
-            _resp = _client.messages.create(
-                model=_s.llm_model,
-                max_tokens=10,
-                messages=[{"role": "user", "content": "Say OK"}],
-            )
-            st.success(f"Claude API OK: {_resp.content[0].text}")
-        except Exception as _e:
-            st.error(f"Claude API FAILED: {type(_e).__name__}: {_e}")
-    else:
-        st.error("No API key — audits will use fallback data")
-except Exception as _e:
-    st.error(f"Config error: {type(_e).__name__}: {_e}")
-
 # If an audit is active, show progress dashboard
 active_audit = st.session_state.get("active_audit_id")
 if active_audit:
