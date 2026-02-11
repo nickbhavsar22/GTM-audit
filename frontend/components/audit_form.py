@@ -1,13 +1,17 @@
 """Audit submission form component."""
 
 import asyncio
+import logging
 import threading
+import traceback
 
 import streamlit as st
 from urllib.parse import urlparse
 
 from backend.models.base import SessionLocal, init_db
 from backend.services.audit_service import AuditService
+
+logger = logging.getLogger(__name__)
 
 
 def validate_url(url: str) -> bool:
@@ -21,16 +25,66 @@ def validate_url(url: str) -> bool:
 
 def _run_audit_background(audit_id: str) -> None:
     """Run the audit pipeline in a background thread."""
-    service = AuditService(SessionLocal())
+    db = SessionLocal()
     try:
+        service = AuditService(db)
         asyncio.run(service.run_audit_async(audit_id))
-    except Exception:
-        pass  # Errors are persisted to DB by run_audit_async
+    except Exception as e:
+        logger.exception(f"Background audit {audit_id} failed: {e}")
+        # Persist the error to the DB so the UI can show it
+        try:
+            from backend.models.audit import Audit, AuditStatus
+            audit = db.query(Audit).filter(Audit.id == audit_id).first()
+            if audit and audit.status != AuditStatus.COMPLETED:
+                audit.status = AuditStatus.FAILED
+                audit.error_message = f"{type(e).__name__}: {e}\n{traceback.format_exc()[-500:]}"
+                db.commit()
+        except Exception:
+            pass
+    finally:
+        db.close()
+
+
+def _show_llm_status() -> None:
+    """Show a quick LLM connectivity status check."""
+    from config.settings import get_settings
+    settings = get_settings()
+
+    if not settings.anthropic_api_key:
+        st.error("ANTHROPIC_API_KEY is not configured. Audits will produce fallback data only.")
+        return
+
+    # Show model info
+    st.caption(f"LLM: {settings.llm_model} | Key: ...{settings.anthropic_api_key[-8:]}")
+
+    # Quick connectivity test (cached to avoid repeated calls)
+    if "llm_status" not in st.session_state:
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+            resp = client.messages.create(
+                model=settings.llm_model,
+                max_tokens=10,
+                messages=[{"role": "user", "content": "Say OK"}],
+            )
+            st.session_state["llm_status"] = "ok"
+            st.session_state["llm_status_msg"] = resp.content[0].text
+        except Exception as e:
+            st.session_state["llm_status"] = "error"
+            st.session_state["llm_status_msg"] = f"{type(e).__name__}: {e}"
+
+    if st.session_state.get("llm_status") == "ok":
+        st.success(f"Claude API connected ({st.session_state['llm_status_msg'].strip()})")
+    else:
+        st.error(f"Claude API error: {st.session_state.get('llm_status_msg', 'Unknown')}")
 
 
 def render_audit_form() -> None:
     """Render the audit submission form."""
     st.subheader("Start a New Audit")
+
+    # LLM connectivity check
+    _show_llm_status()
 
     with st.form("audit_form"):
         company_url = st.text_input(

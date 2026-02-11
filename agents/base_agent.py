@@ -44,6 +44,7 @@ class BaseAgent(ABC):
         self._progress: int = 0
         self._current_task: str = ""
         self._status: str = "pending"
+        self._last_error: str = ""  # Track last error for diagnostics
 
     # --- Progress Tracking ---
 
@@ -172,6 +173,11 @@ class BaseAgent(ABC):
                     "status": "completed",
                     **result,
                 }
+                # If agent used fallback (indicated by fallback key in result_data),
+                # include the last error for diagnostics
+                if self._last_error and result.get("result_data", {}).get("fallback"):
+                    output["error"] = f"Fallback: {self._last_error}"
+
                 await self.context.set_analysis(self.agent_name, output)
                 self._persist_result(output)
 
@@ -221,5 +227,11 @@ class BaseAgent(ABC):
     async def call_llm(self, prompt: str, system: str = "") -> str:
         """Call the Claude API with the given prompt. Returns response text."""
         if not self.llm:
-            raise RuntimeError(f"[{self.agent_name}] No LLM client configured")
-        return await self.llm.complete(prompt, system=system)
+            err = f"[{self.agent_name}] No LLM client configured"
+            self._last_error = err
+            raise RuntimeError(err)
+        try:
+            return await self.llm.complete(prompt, system=system)
+        except Exception as e:
+            self._last_error = f"{type(e).__name__}: {e}"
+            raise
