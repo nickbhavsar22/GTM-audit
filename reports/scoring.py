@@ -103,9 +103,10 @@ class AuditReport:
 
     @property
     def overall_percentage(self) -> float:
-        if not self.modules:
+        scored_modules = [m for m in self.modules if m.items]
+        if not scored_modules:
             return 0
-        return sum(m.percentage for m in self.modules) / len(self.modules)
+        return sum(m.percentage for m in scored_modules) / len(scored_modules)
 
     @property
     def overall_grade(self) -> Grade:
