@@ -128,11 +128,23 @@ class AuditService:
             )
             await orchestrator.run_audit()
 
-            # Update audit with final results
-            audit.status = AuditStatus.COMPLETED
-            audit.completed_at = datetime.utcnow()
-            audit.pages_crawled = len(context.pages)
-            audit.screenshots_count = len(context.screenshots)
+            # Verify report was actually saved before marking complete
+            from backend.models.report import Report
+
+            report_exists = (
+                db.query(Report).filter(Report.audit_id == audit_id).first()
+            )
+
+            if report_exists:
+                audit.status = AuditStatus.COMPLETED
+                audit.completed_at = datetime.utcnow()
+                audit.pages_crawled = len(context.pages)
+                audit.screenshots_count = len(context.screenshots)
+            else:
+                audit.status = AuditStatus.FAILED
+                audit.error_message = (
+                    "Audit agents completed but report was not saved to database"
+                )
             db.commit()
 
             logger.info(f"Audit {audit_id} completed successfully")

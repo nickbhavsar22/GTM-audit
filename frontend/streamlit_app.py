@@ -10,6 +10,7 @@ import streamlit as st
 
 from backend.models.base import init_db
 from frontend.components.auth import check_password
+from frontend.utils.brand_loader import inject_brand_css
 
 # Initialize database tables on startup
 init_db()
@@ -20,6 +21,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+inject_brand_css()
 
 # Warn if API key is missing
 from config.settings import get_settings as _get_settings
@@ -32,7 +35,12 @@ if not check_password():
 
 # Sidebar
 with st.sidebar:
-    st.markdown("### GTM Audit")
+    _logo_path = Path(__file__).parent / "assets" / "images" / "bgc_logo.png"
+    if _logo_path.exists():
+        st.image(str(_logo_path), width=200)
+    else:
+        st.markdown("### Bhavsar Growth Consulting")
+    st.caption("GTM Audit Platform")
     st.markdown("---")
 
     if st.button("Logout", use_container_width=True):

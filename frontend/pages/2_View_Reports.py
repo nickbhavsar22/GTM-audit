@@ -9,12 +9,15 @@ import streamlit as st
 
 from frontend.components.auth import check_password
 from frontend.components.report_viewer import render_report_viewer
+from frontend.utils.brand_loader import inject_brand_css
 
 st.set_page_config(
     page_title="View Reports - GTM Audit",
     page_icon=":material/analytics:",
     layout="wide",
 )
+
+inject_brand_css()
 
 if not check_password():
     st.stop()
@@ -25,6 +28,8 @@ audit_id = (
     st.session_state.get("view_audit_id")
     or st.session_state.get("active_audit_id")
 )
+
+st.caption(f"[DEBUG v2] audit_id={audit_id}, view={st.session_state.get('view_audit_id')}, active={st.session_state.get('active_audit_id')}")
 
 if audit_id:
     render_report_viewer(audit_id)

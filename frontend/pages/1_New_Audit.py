@@ -10,12 +10,15 @@ import streamlit as st
 from frontend.components.auth import check_password
 from frontend.components.audit_form import render_audit_form
 from frontend.components.progress_dashboard import render_progress_dashboard
+from frontend.utils.brand_loader import inject_brand_css
 
 st.set_page_config(
     page_title="New Audit - GTM Audit",
     page_icon=":material/analytics:",
     layout="wide",
 )
+
+inject_brand_css()
 
 # Auth gate
 if not check_password():

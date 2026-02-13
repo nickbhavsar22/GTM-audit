@@ -4,23 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GTM Audit — {{ company_name }}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=Playfair+Display:ital,wght@0,700;0,800;1,600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --ink: #0B0F1A;
-            --slate: #111827;
-            --card: #1A2035;
-            --card-alt: #1F2A42;
-            --border: #2A3550;
-            --border-light: #334766;
-            --text: #E8ECF4;
-            --text-mid: #9CABC4;
-            --text-dim: #5E7290;
-            --accent: #D4A853;
-            --accent-light: #E8C97A;
-            --accent-glow: rgba(212, 168, 83, 0.15);
+            --ink: #1B1B1B;
+            --slate: #212121;
+            --card: #242424;
+            --card-alt: #2A2A2A;
+            --border: #333333;
+            --border-light: #444444;
+            --text: #C5C1B9;
+            --text-mid: #A9A69F;
+            --text-dim: #8A8780;
+            --accent: #575ECF;
+            --accent-light: #6E74D8;
+            --accent-glow: rgba(87, 94, 207, 0.15);
             --green: #34D399;
             --green-dim: rgba(52, 211, 153, 0.12);
             --red: #F87171;
@@ -34,7 +31,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'DM Sans', system-ui, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--ink);
             color: var(--text);
             line-height: 1.65;
@@ -48,8 +45,9 @@
             position: relative;
             padding: 3.5rem 2rem 3rem;
             text-align: center;
-            background: linear-gradient(170deg, #0D1321 0%, #15203A 40%, #1A2744 70%, #111827 100%);
-            border-bottom: 3px solid var(--accent);
+            background: linear-gradient(170deg, #1B1B1B 0%, #2A2230 40%, #1F1F3A 70%, #1B1B1B 100%);
+            border-bottom: 3px solid;
+            border-image: linear-gradient(90deg, #FE7B02, #FE3F21, #F858BC, #575ECF) 1;
             overflow: hidden;
         }
         .hero::before {
@@ -60,11 +58,11 @@
             transform: translateX(-50%);
             width: 800px;
             height: 800px;
-            background: radial-gradient(circle, rgba(212,168,83,0.06) 0%, transparent 65%);
+            background: radial-gradient(circle, rgba(87,94,207,0.06) 0%, transparent 65%);
             pointer-events: none;
         }
         .hero-brand {
-            font-family: 'DM Sans', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 0.7rem;
             font-weight: 600;
             letter-spacing: 0.25em;
@@ -73,7 +71,7 @@
             margin-bottom: 1.5rem;
         }
         .hero h1 {
-            font-family: 'Playfair Display', Georgia, serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 2.6rem;
             font-weight: 800;
             line-height: 1.15;
@@ -81,7 +79,7 @@
             margin-bottom: 0.3rem;
         }
         .hero-company {
-            font-family: 'Playfair Display', Georgia, serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 1.5rem;
             font-weight: 700;
             font-style: italic;
@@ -117,7 +115,7 @@
             transform: rotate(45deg);
         }
         .score-number {
-            font-family: 'Playfair Display', serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 2.8rem;
             font-weight: 800;
             line-height: 1;
@@ -155,7 +153,7 @@
             margin-bottom: 0.5rem;
         }
         .section-title {
-            font-family: 'Playfair Display', serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 1.6rem;
             font-weight: 700;
             margin-bottom: 1.25rem;
@@ -165,7 +163,7 @@
         .card {
             background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 10px;
+            border-radius: 6px;
             padding: 1.25rem 1.5rem;
             margin-bottom: 0.75rem;
         }
@@ -225,7 +223,7 @@
             background: var(--card);
             border: 1px solid var(--border);
             border-left: 3px solid var(--accent);
-            border-radius: 0 8px 8px 0;
+            border-radius: 0 6px 6px 0;
             padding: 1rem 1.25rem;
             margin-bottom: 0.6rem;
         }
@@ -285,7 +283,7 @@
             gap: 0.5rem;
         }
         .mod-header h2 {
-            font-family: 'Playfair Display', serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 1.5rem;
             font-weight: 700;
         }
@@ -295,7 +293,7 @@
             gap: 0.6rem;
         }
         .mod-pct {
-            font-family: 'Playfair Display', serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 1.8rem;
             font-weight: 800;
         }
@@ -322,7 +320,7 @@
         .score-table .criterion { font-weight: 500; }
         .score-table .score-val {
             font-weight: 700;
-            font-family: 'DM Sans', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             min-width: 45px;
             text-align: right;
         }
@@ -343,7 +341,7 @@
         .bar-fill {
             height: 100%;
             border-radius: 3px;
-            transition: width 0.4s ease;
+            transition: width 0.2s cubic-bezier(0.16, 1, 0.32, 1);
         }
 
         /* ── ANALYSIS TEXT ──────────────────────────────────── */
@@ -355,7 +353,7 @@
             padding: 1.25rem 1.5rem;
             background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 10px;
+            border-radius: 6px;
             margin-bottom: 1.25rem;
         }
 
@@ -385,7 +383,7 @@
         .rec {
             background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 10px;
+            border-radius: 6px;
             padding: 1.25rem 1.5rem;
             margin-bottom: 0.75rem;
             position: relative;
@@ -507,7 +505,7 @@
         /* ── MESSAGING CALLOUT ─────────────────────────────── */
         .vp-callout {
             border: 2px solid var(--accent);
-            border-radius: 10px;
+            border-radius: 6px;
             padding: 1.25rem 1.5rem;
             margin-bottom: 1rem;
             background: var(--accent-glow);
@@ -521,7 +519,7 @@
             margin-bottom: 0.3rem;
         }
         .vp-text {
-            font-family: 'Playfair Display', serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 1.1rem;
             font-style: italic;
             color: var(--text);
@@ -538,7 +536,7 @@
         }
         .action-row:last-child { border-bottom: none; }
         .action-num {
-            font-family: 'Playfair Display', serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 1.3rem;
             font-weight: 800;
             color: var(--accent);
@@ -587,18 +585,18 @@
             background: var(--accent);
             color: var(--ink);
             border: none;
-            border-radius: 8px;
-            font-family: 'DM Sans', sans-serif;
+            border-radius: 6px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 0.8rem;
             font-weight: 600;
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(212,168,83,0.3);
+            box-shadow: 0 8px 8px -4px rgba(0, 0, 0, 0.08);
             z-index: 100;
-            transition: transform 0.15s, box-shadow 0.15s;
+            transition: 0.2s cubic-bezier(0.16, 1, 0.32, 1);
         }
         .print-btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 6px 24px rgba(212,168,83,0.4);
+            box-shadow: 0 8px 12px -4px rgba(0, 0, 0, 0.12);
         }
 
         /* ── FOOTER ────────────────────────────────────────── */
@@ -610,7 +608,7 @@
             letter-spacing: 0.03em;
         }
         .footer-brand {
-            font-family: 'Playfair Display', serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 1rem;
             color: var(--text-mid);
             margin-bottom: 0.3rem;
@@ -628,7 +626,7 @@
         /* ── PRINT ─────────────────────────────────────────── */
         @media print {
             body { background: #fff; color: #111; }
-            .hero { background: #f8f9fa; border-bottom-color: #D4A853; }
+            .hero { background: #f8f9fa; border-bottom-color: #575ECF; }
             .hero h1, .hero-company, .score-number { color: #111; }
             .card, .rec, .analysis-text, .qw-card, .vp-callout {
                 background: #f8f9fa;
@@ -649,6 +647,9 @@
 
 <!-- ════════════════════════════════════════════════════════ HERO -->
 <div class="hero">
+    {% if logo_base64 %}
+    <img src="data:image/png;base64,{{ logo_base64 }}" style="width: 200px; max-width: 60%; height: auto; margin-bottom: 1rem;" alt="Bhavsar Growth Consulting">
+    {% endif %}
     <div class="hero-brand">Bhavsar Growth Consulting</div>
     <h1>GTM Audit Report</h1>
     <div class="hero-company">{{ company_name }}</div>

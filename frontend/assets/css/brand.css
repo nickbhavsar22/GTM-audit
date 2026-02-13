@@ -1,37 +1,96 @@
-/* GTM Audit Platform — Custom Streamlit Styling */
+/* BGC Brand — Streamlit Custom Styling
+   Bhavsar Growth Consulting brand guidelines applied to Streamlit UI.
+
+   @font-face placeholder — uncomment when CameraPlainVariable font files are available:
+   @font-face {
+       font-family: 'CameraPlainVariable';
+       src: url('path/to/CameraPlainVariable.woff2') format('woff2');
+       font-weight: 100 900;
+       font-display: swap;
+   }
+*/
 
 /* Hide Streamlit default branding */
 #MainMenu { visibility: hidden; }
 footer { visibility: hidden; }
 
-/* Custom heading styles */
+/* Heading styles */
 h1 {
-    color: #F8FAFC !important;
-    font-weight: 800 !important;
+    color: #DCDAD5 !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
 }
 
 h2, h3 {
-    color: #E2E8F0 !important;
+    color: #C5C1B9 !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
 }
 
-/* Button styling */
+/* Primary button styling */
 .stButton > button[kind="primary"] {
-    background-color: #4F46E5 !important;
-    border-color: #4F46E5 !important;
+    background-color: #575ECF !important;
+    border-color: #575ECF !important;
+    border-radius: 6px !important;
+    padding: 8px 16px !important;
+    transition: 0.2s cubic-bezier(0.16, 1, 0.32, 1) !important;
 }
 
 .stButton > button[kind="primary"]:hover {
-    background-color: #4338CA !important;
-    border-color: #4338CA !important;
+    background-color: #4A50B5 !important;
+    border-color: #4A50B5 !important;
+    box-shadow: 0 8px 8px -4px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Secondary buttons */
+.stButton > button:not([kind="primary"]) {
+    border-radius: 6px !important;
+    padding: 8px 16px !important;
+    border-color: #333333 !important;
+    color: #C5C1B9 !important;
+    transition: 0.2s cubic-bezier(0.16, 1, 0.32, 1) !important;
+}
+
+.stButton > button:not([kind="primary"]):hover {
+    border-color: #575ECF !important;
+    color: #DCDAD5 !important;
 }
 
 /* Progress bar */
 .stProgress > div > div {
-    background-color: #4F46E5 !important;
+    background-color: #575ECF !important;
 }
 
 /* Metric styling */
 [data-testid="stMetricValue"] {
     font-size: 2rem !important;
-    font-weight: 800 !important;
+    font-weight: 700 !important;
+    color: #DCDAD5 !important;
+}
+
+/* Sidebar styling */
+[data-testid="stSidebar"] {
+    border-right: 1px solid #333333 !important;
+}
+
+/* Form inputs */
+.stTextInput > div > div > input {
+    border-radius: 6px !important;
+}
+
+.stTextInput > div > div > input:focus {
+    border-color: #575ECF !important;
+    box-shadow: 0 0 0 1px #575ECF !important;
+}
+
+/* Download buttons */
+.stDownloadButton > button {
+    border-radius: 6px !important;
+    padding: 8px 16px !important;
+}
+
+/* Expanders */
+[data-testid="stExpander"] {
+    border-color: #333333 !important;
+    border-radius: 6px !important;
 }

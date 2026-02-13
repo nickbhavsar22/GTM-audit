@@ -1,12 +1,19 @@
 """Sidebar navigation component."""
 
+from pathlib import Path
+
 import streamlit as st
 
 
 def render_sidebar() -> None:
     """Render the sidebar with navigation and status."""
     with st.sidebar:
-        st.markdown("### GTM Audit")
+        _logo_path = Path(__file__).resolve().parent.parent / "assets" / "images" / "bgc_logo.png"
+        if _logo_path.exists():
+            st.image(str(_logo_path), width=200)
+        else:
+            st.markdown("### Bhavsar Growth Consulting")
+        st.caption("GTM Audit Platform")
         st.markdown("---")
 
         st.page_link("frontend/streamlit_app.py", label="Home", icon=":material/home:")

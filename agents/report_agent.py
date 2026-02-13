@@ -92,11 +92,12 @@ class ReportAgent(BaseAgent):
         await self.update_progress(85, "Saving report to database")
 
         # Save to database
-        if self.db:
-            self._save_report(html_content, markdown_content, report)
+        if not self.db:
+            raise RuntimeError("Report agent requires a database session to save the report")
+        self._save_report(html_content, markdown_content, report)
 
         # Update audit overall score
-        if self.db and report.modules:
+        if report.modules:
             self._update_audit_score(report)
 
         return {
@@ -272,10 +273,12 @@ class ReportAgent(BaseAgent):
     def _save_report(
         self, html_content: str, markdown_content: str, report: AuditReport
     ) -> None:
-        """Save the generated report to the database."""
-        try:
-            from backend.models.report import Report
+        """Save the generated report to the database using a fresh session."""
+        from backend.models.base import SessionLocal
+        from backend.models.report import Report
 
+        db = SessionLocal()
+        try:
             share_token = secrets.token_urlsafe(32)
             db_report = Report(
                 audit_id=self.context.audit_id,
@@ -289,19 +292,25 @@ class ReportAgent(BaseAgent):
                     "overall_grade": report.overall_grade.value,
                 },
             )
-            self.db.add(db_report)
-            self.db.commit()
+            db.add(db_report)
+            db.commit()
             logger.info(f"Report saved with share token: {share_token}")
         except Exception as e:
-            logger.error(f"Failed to save report: {e}")
+            db.rollback()
+            logger.error(f"Failed to save report: {e}", exc_info=True)
+            raise
+        finally:
+            db.close()
 
     def _update_audit_score(self, report: AuditReport) -> None:
-        """Update the audit record with the overall score."""
-        try:
-            from backend.models.audit import Audit
+        """Update the audit record with the overall score using a fresh session."""
+        from backend.models.audit import Audit
+        from backend.models.base import SessionLocal
 
+        db = SessionLocal()
+        try:
             audit = (
-                self.db.query(Audit)
+                db.query(Audit)
                 .filter(Audit.id == self.context.audit_id)
                 .first()
             )
@@ -309,6 +318,10 @@ class ReportAgent(BaseAgent):
                 audit.overall_score = report.overall_percentage
                 audit.overall_grade = report.overall_grade.value
                 audit.company_name = report.company_name
-                self.db.commit()
+                db.commit()
         except Exception as e:
-            logger.error(f"Failed to update audit score: {e}")
+            db.rollback()
+            logger.error(f"Failed to update audit score: {e}", exc_info=True)
+            raise
+        finally:
+            db.close()

@@ -5,21 +5,37 @@ import json
 import streamlit as st
 
 from backend.models.base import SessionLocal
+from backend.services.audit_service import AuditService
 from backend.services.report_service import ReportService
 
 
 def render_report_viewer(audit_id: str) -> None:
     """Display the HTML report with download buttons."""
+    st.caption(f"[DEBUG] audit_id={audit_id}")
     db = SessionLocal()
     try:
         service = ReportService(db)
         report = service.get_report(audit_id)
+        st.caption(f"[DEBUG] report found={report is not None}")
+
+        if not report:
+            audit_service = AuditService(db)
+            audit = audit_service.get_audit(audit_id)
+            if not audit:
+                st.error("Audit not found.")
+            elif audit.status.value == "running":
+                st.warning("Report not yet available. The audit is still in progress.")
+            elif audit.status.value in ("completed", "failed"):
+                msg = "Report generation failed."
+                if audit.error_message:
+                    msg += f" Error: {audit.error_message}"
+                msg += " Please try running the audit again."
+                st.error(msg)
+            else:
+                st.warning("Report not yet available.")
+            return
     finally:
         db.close()
-
-    if not report:
-        st.warning("Report not yet available. The audit may still be in progress.")
-        return
 
     html_content = report.html_content or ""
     markdown_content = report.markdown_content or ""

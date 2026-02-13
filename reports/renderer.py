@@ -1,5 +1,6 @@
 """Jinja2 HTML report rendering engine."""
 
+import base64
 import logging
 from pathlib import Path
 
@@ -31,6 +32,13 @@ class ReportRenderer:
             else "full_report.html"
         )
         template = self.env.get_template(template_name)
+
+        # Load logo as base64 for embedding in standalone HTML reports
+        logo_path = Path(__file__).parent.parent / "frontend" / "assets" / "images" / "bgc_logo.png"
+        logo_base64 = ""
+        if logo_path.exists():
+            logo_base64 = base64.b64encode(logo_path.read_bytes()).decode()
+
         return template.render(
             report=report,
             company_name=report.company_name,
@@ -43,6 +51,7 @@ class ReportRenderer:
             strengths=report.get_top_strengths(5),
             critical_gaps=report.get_critical_gaps(5),
             company_profile=company_profile or {},
+            logo_base64=logo_base64,
         )
 
     @staticmethod

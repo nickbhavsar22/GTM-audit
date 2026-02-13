@@ -1,5 +1,8 @@
 """Password authentication component for Streamlit."""
 
+import base64
+from pathlib import Path
+
 import streamlit as st
 
 from config.settings import get_settings
@@ -10,11 +13,19 @@ def check_password() -> bool:
     if st.session_state.get("authenticated"):
         return True
 
+    logo_path = Path(__file__).resolve().parent.parent / "assets" / "images" / "bgc_logo.png"
+    if logo_path.exists():
+        logo_b64 = base64.b64encode(logo_path.read_bytes()).decode()
+        logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="width: 220px; margin-bottom: 1rem;" alt="Bhavsar Growth Consulting">'
+    else:
+        logo_html = ""
+
     st.markdown(
-        """
+        f"""
         <div style="text-align: center; padding: 2rem 0;">
-            <h1>GTM Audit Platform</h1>
-            <p style="color: #94A3B8; font-size: 1.1rem;">
+            {logo_html}
+            <h1 style="color: #DCDAD5; font-weight: 700; letter-spacing: -0.01em;">GTM Audit Platform</h1>
+            <p style="color: #8A8780; font-size: 1.1rem;">
                 AI-Powered B2B SaaS Marketing Audit
             </p>
         </div>

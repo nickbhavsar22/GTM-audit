@@ -9,12 +9,15 @@ import streamlit as st
 
 from frontend.components.auth import check_password
 from frontend.components.audit_history import render_audit_history
+from frontend.utils.brand_loader import inject_brand_css
 
 st.set_page_config(
     page_title="Audit History - GTM Audit",
     page_icon=":material/analytics:",
     layout="wide",
 )
+
+inject_brand_css()
 
 if not check_password():
     st.stop()

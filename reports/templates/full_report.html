@@ -6,38 +6,39 @@
     <title>GTM Audit Report — {{ company_name }}</title>
     <style>
         :root {
-            --primary: #4F46E5;
-            --primary-light: #818CF8;
+            --primary: #575ECF;
+            --primary-light: #6E74D8;
             --success: #22C55E;
             --warning: #EAB308;
             --danger: #EF4444;
-            --bg: #0F172A;
-            --bg-card: #1E293B;
-            --bg-card-hover: #334155;
-            --text: #F8FAFC;
-            --text-muted: #94A3B8;
-            --border: #334155;
+            --bg: #1B1B1B;
+            --bg-card: #242424;
+            --bg-card-hover: #333333;
+            --text: #C5C1B9;
+            --text-muted: #8A8780;
+            --border: #333333;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg);
             color: var(--text);
-            line-height: 1.6;
+            line-height: 1.5;
         }
 
         .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
 
         /* Cover Page */
         .cover {
-            background: linear-gradient(135deg, #1E1B4B 0%, #312E81 50%, #4338CA 100%);
+            background: linear-gradient(135deg, #1B1B1B 0%, #252540 50%, #2D2D55 100%);
             padding: 4rem 2rem;
             text-align: center;
-            border-bottom: 3px solid var(--primary);
+            border-bottom: 3px solid;
+            border-image: linear-gradient(90deg, #FE7B02, #FE3F21, #F858BC, #575ECF) 1;
         }
-        .cover h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; }
+        .cover h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.01em; }
         .cover .subtitle { color: var(--primary-light); font-size: 1.2rem; margin-bottom: 2rem; }
         .cover .meta { color: var(--text-muted); font-size: 0.9rem; }
 
@@ -64,13 +65,14 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            letter-spacing: -0.01em;
         }
         .section h3 { font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 0.75rem; }
 
         /* Cards */
         .card {
             background: var(--bg-card);
-            border-radius: 12px;
+            border-radius: 6px;
             padding: 1.5rem;
             margin-bottom: 1rem;
             border: 1px solid var(--border);
@@ -93,7 +95,7 @@
         /* Recommendation cards */
         .rec-card {
             background: var(--bg-card);
-            border-radius: 10px;
+            border-radius: 6px;
             padding: 1.25rem;
             margin-bottom: 0.75rem;
             border-left: 4px solid var(--primary);
@@ -150,6 +152,9 @@
 
 <!-- Cover Page -->
 <div class="cover">
+    {% if logo_base64 %}
+    <img src="data:image/png;base64,{{ logo_base64 }}" style="width: 200px; max-width: 60%; height: auto; margin-bottom: 1rem;" alt="Bhavsar Growth Consulting">
+    {% endif %}
     <h1>GTM Audit Report</h1>
     <div class="subtitle">{{ company_name }}</div>
     <div class="score-circle" style="border-color: {{ overall_score | score_color }};">
