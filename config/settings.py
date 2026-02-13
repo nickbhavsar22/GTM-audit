@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     backend_host: str = "127.0.0.1"
     backend_port: int = 8000
 
+    # Security
+    cors_origins: str = "http://localhost:8501"
+    expose_docs: bool = True
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

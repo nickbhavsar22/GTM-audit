@@ -11,12 +11,10 @@ from backend.services.report_service import ReportService
 
 def render_report_viewer(audit_id: str) -> None:
     """Display the HTML report with download buttons."""
-    st.caption(f"[DEBUG] audit_id={audit_id}")
     db = SessionLocal()
     try:
         service = ReportService(db)
         report = service.get_report(audit_id)
-        st.caption(f"[DEBUG] report found={report is not None}")
 
         if not report:
             audit_service = AuditService(db)

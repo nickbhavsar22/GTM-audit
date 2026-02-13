@@ -21,7 +21,14 @@ async def login(
     db: Session = Depends(get_db),
 ) -> LoginResponse:
     """Validate password and create session."""
-    if request.password == settings.app_password:
+    stored = settings.app_password
+    # Support bcrypt-hashed passwords (start with $2b$) and plaintext fallback
+    matched = False
+    if stored.startswith("$2b$"):
+        matched = bcrypt.checkpw(request.password.encode(), stored.encode())
+    else:
+        matched = request.password == stored
+    if matched:
         token = secrets.token_urlsafe(64)
         session = UserSession(session_token=token)
         db.add(session)

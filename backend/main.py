@@ -27,16 +27,24 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    docs_url = "/docs" if settings.expose_docs else None
+    redoc_url = "/redoc" if settings.expose_docs else None
+    openapi_url = "/openapi.json" if settings.expose_docs else None
+
     app = FastAPI(
         title="GTM Audit API",
         version="0.1.0",
         lifespan=lifespan,
+        docs_url=docs_url,
+        redoc_url=redoc_url,
+        openapi_url=openapi_url,
     )
 
     # CORS
+    origins = [o.strip() for o in settings.cors_origins.split(",")]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )

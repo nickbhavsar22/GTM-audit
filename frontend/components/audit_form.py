@@ -5,6 +5,9 @@ import logging
 import threading
 import traceback
 
+import ipaddress
+import socket
+
 import streamlit as st
 from urllib.parse import urlparse
 
@@ -13,12 +16,27 @@ from backend.services.audit_service import AuditService
 
 logger = logging.getLogger(__name__)
 
+# Blocked hostnames for SSRF protection
+_BLOCKED_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "[::1]", "metadata.google.internal"}
+
 
 def validate_url(url: str) -> bool:
-    """Basic URL validation."""
+    """Validate URL format and reject SSRF targets (private IPs, localhost, metadata)."""
     try:
         result = urlparse(url)
-        return all([result.scheme in ("http", "https"), result.netloc])
+        if not all([result.scheme in ("http", "https"), result.netloc]):
+            return False
+        hostname = result.hostname or ""
+        if hostname.lower() in _BLOCKED_HOSTS:
+            return False
+        # Reject private/reserved IP addresses
+        try:
+            addr = ipaddress.ip_address(hostname)
+            if addr.is_private or addr.is_loopback or addr.is_reserved or addr.is_link_local:
+                return False
+        except ValueError:
+            pass  # Not an IP literal — that's fine (it's a domain name)
+        return True
     except Exception:
         return False
 
@@ -55,7 +73,7 @@ def _show_llm_status() -> None:
         return
 
     # Show model info
-    st.caption(f"LLM: {settings.llm_model} | Key: ...{settings.anthropic_api_key[-8:]}")
+    st.caption(f"LLM: {settings.llm_model}")
 
     # Quick connectivity test (cached to avoid repeated calls)
     if "llm_status" not in st.session_state:

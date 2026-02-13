@@ -1,5 +1,9 @@
-# Frontend (v6 - max_tokens fix)
+# Frontend
 streamlit>=1.31.0
+
+# Backend
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
 
 # Database
 sqlalchemy>=2.0.25

@@ -16,7 +16,7 @@ def check_password() -> bool:
     logo_path = Path(__file__).resolve().parent.parent / "assets" / "images" / "bgc_logo.png"
     if logo_path.exists():
         logo_b64 = base64.b64encode(logo_path.read_bytes()).decode()
-        logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="width: 220px; margin-bottom: 1rem;" alt="Bhavsar Growth Consulting">'
+        logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="max-width: 220px; width: 60%; margin-bottom: 1rem;" alt="Bhavsar Growth Consulting">'
     else:
         logo_html = ""
 
@@ -43,7 +43,17 @@ def check_password() -> bool:
                 return False
 
             settings = get_settings()
-            if password == settings.app_password:
+            stored = settings.app_password
+            # Support bcrypt-hashed passwords (start with $2b$) and plaintext fallback
+            if stored.startswith("$2b$"):
+                import bcrypt
+                if bcrypt.checkpw(password.encode(), stored.encode()):
+                    st.session_state["authenticated"] = True
+                    st.rerun()
+                else:
+                    st.error("Invalid password.")
+                    return False
+            elif password == stored:
                 st.session_state["authenticated"] = True
                 st.rerun()
             else:

@@ -1,14 +1,14 @@
 """Pydantic schemas for audit requests and responses."""
 
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, HttpUrl
 
 
 class AuditCreateRequest(BaseModel):
     company_url: str
-    audit_type: str = "full"  # "full" or "quick"
+    audit_type: Literal["full", "quick"] = "full"
 
 
 class AgentStatusResponse(BaseModel):

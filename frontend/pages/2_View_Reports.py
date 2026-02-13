@@ -29,8 +29,6 @@ audit_id = (
     or st.session_state.get("active_audit_id")
 )
 
-st.caption(f"[DEBUG v2] audit_id={audit_id}, view={st.session_state.get('view_audit_id')}, active={st.session_state.get('active_audit_id')}")
-
 if audit_id:
     render_report_viewer(audit_id)
 
