@@ -1,0 +1,27 @@
+{
+  "dependencies": {
+    "playwright": "^1.58.2"
+  },
+  "name": "gtm-audit",
+  "version": "1.0.0",
+  "description": "AI-powered Go-To-Market audit tool for B2B SaaS companies. Analyzes websites, messaging, SEO, competitive positioning, and more — then generates a scored report with actionable recommendations.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nickbhavsar22/GTM-audit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/nickbhavsar22/GTM-audit/issues"
+  },
+  "homepage": "https://github.com/nickbhavsar22/GTM-audit#readme"
+}

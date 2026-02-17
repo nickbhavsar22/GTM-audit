@@ -614,6 +614,57 @@
             margin-bottom: 0.3rem;
         }
 
+        /* ── SCREENSHOTS ──────────────────────────────────── */
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .screenshot-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .screenshot-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .screenshot-card .caption {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            border-top: 1px solid var(--border);
+        }
+        .comparison-block {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .comparison-side {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .comparison-side .comp-label-vis {
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .comparison-side .comp-label-vis.before { color: var(--red); background: var(--red-dim); }
+        .comparison-side .comp-label-vis.after { color: var(--green); background: var(--green-dim); }
+        .comparison-side img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
         /* ── RESPONSIVE ────────────────────────────────────── */
         @media (max-width: 700px) {
             .hero h1 { font-size: 1.8rem; }
@@ -621,6 +672,8 @@
             .grid-2, .profile-grid, .rec-context { grid-template-columns: 1fr; }
             .mod-header { flex-direction: column; align-items: flex-start; }
             .page { padding: 0 1rem 3rem; }
+            .screenshot-grid { grid-template-columns: 1fr; }
+            .comparison-block { grid-template-columns: 1fr; }
         }
 
         /* ── PRINT ─────────────────────────────────────────── */
@@ -972,6 +1025,40 @@
         </div>
         {% endif %}
     </div>
+    {% endif %}
+
+    {# Visual Evidence — screenshots for this module #}
+    {% if has_screenshots and module.agent_name in module_screenshots %}
+    <div class="section-label" style="margin-top:1.25rem; margin-bottom:0.75rem;">Visual Evidence</div>
+    <div class="screenshot-grid">
+        {% for shot in module_screenshots[module.agent_name] %}
+        <div class="screenshot-card">
+            <img src="data:image/png;base64,{{ shot.base64 }}" alt="{{ shot.description }}" loading="lazy">
+            <div class="caption">{{ shot.description }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Before/After comparisons for mockups (shown in messaging module) #}
+    {% if module.agent_name == 'messaging' and mockup_pairs %}
+    {% for pair in mockup_pairs %}
+    <div class="section-label" style="margin-top:1.25rem; margin-bottom:0.75rem;">Suggested Improvement: {{ pair.label }}</div>
+    <div class="comparison-block">
+        <div class="comparison-side">
+            <div class="comp-label-vis before">Current</div>
+            {% if pair.before_base64 %}
+            <img src="data:image/png;base64,{{ pair.before_base64 }}" alt="Current state" loading="lazy">
+            {% else %}
+            <div style="padding: 2rem; text-align: center; color: var(--text-dim);">Original screenshot not available</div>
+            {% endif %}
+        </div>
+        <div class="comparison-side">
+            <div class="comp-label-vis after">Suggested</div>
+            <img src="data:image/png;base64,{{ pair.after_base64 }}" alt="Suggested improvement" loading="lazy">
+        </div>
+    </div>
+    {% endfor %}
     {% endif %}
 
     <!-- Recommendations -->

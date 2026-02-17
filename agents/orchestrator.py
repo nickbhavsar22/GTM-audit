@@ -48,6 +48,13 @@ class ProjectLead:
         except ImportError:
             logger.warning("WebScraperAgent not implemented yet")
 
+        # Phase 1.5: Screenshot capture via Chrome DevTools MCP
+        try:
+            from agents.screenshot_agent import ScreenshotAgent
+            classes.append(ScreenshotAgent)
+        except ImportError:
+            logger.debug("ScreenshotAgent not available")
+
         try:
             from agents.company_research_agent import CompanyResearchAgent
             classes.append(CompanyResearchAgent)
@@ -168,6 +175,11 @@ class ProjectLead:
         phase1 = [n for n in ["web_scraper"] if n in registered]
         if phase1:
             await self.run_phase("Crawling", phase1)
+
+        # Phase 1.5: Screenshot capture (depends on web_scraper)
+        phase1_5 = [n for n in ["screenshot"] if n in registered]
+        if phase1_5:
+            await self.run_phase("Screenshots", phase1_5)
 
         # Phase 2: Company research (depends on web_scraper)
         phase2 = [n for n in ["company_research"] if n in registered]

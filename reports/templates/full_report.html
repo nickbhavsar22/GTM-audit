@@ -142,9 +142,64 @@
             font-size: 0.85rem;
         }
 
+        /* Screenshot sections */
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .screenshot-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .screenshot-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .screenshot-card .caption {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+        }
+
+        /* Before/After comparison */
+        .comparison-block {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .comparison-side {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .comparison-side .comp-label {
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .comparison-side .comp-label.before { color: var(--danger); background: rgba(239,68,68,0.1); }
+        .comparison-side .comp-label.after { color: var(--success); background: rgba(34,197,94,0.1); }
+        .comparison-side img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
         @media (max-width: 768px) {
             .grid-2, .grid-3 { grid-template-columns: 1fr; }
             .cover h1 { font-size: 1.8rem; }
+            .screenshot-grid { grid-template-columns: 1fr; }
+            .comparison-block { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -252,6 +307,40 @@
         </div>
         {% endif %}
     </div>
+    {% endif %}
+
+    {# Visual Evidence — screenshots for this module #}
+    {% if has_screenshots and module.agent_name in module_screenshots %}
+    <h3>Visual Evidence</h3>
+    <div class="screenshot-grid">
+        {% for shot in module_screenshots[module.agent_name] %}
+        <div class="screenshot-card">
+            <img src="data:image/png;base64,{{ shot.base64 }}" alt="{{ shot.description }}" loading="lazy">
+            <div class="caption">{{ shot.description }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Before/After comparisons for mockups (shown in messaging module) #}
+    {% if module.agent_name == 'messaging' and mockup_pairs %}
+    {% for pair in mockup_pairs %}
+    <h3>Suggested Improvement: {{ pair.label }}</h3>
+    <div class="comparison-block">
+        <div class="comparison-side">
+            <div class="comp-label before">Current</div>
+            {% if pair.before_base64 %}
+            <img src="data:image/png;base64,{{ pair.before_base64 }}" alt="Current state" loading="lazy">
+            {% else %}
+            <div style="padding: 2rem; text-align: center; color: var(--text-muted);">Original screenshot not available</div>
+            {% endif %}
+        </div>
+        <div class="comparison-side">
+            <div class="comp-label after">Suggested</div>
+            <img src="data:image/png;base64,{{ pair.after_base64 }}" alt="Suggested improvement" loading="lazy">
+        </div>
+    </div>
+    {% endfor %}
     {% endif %}
 
     {% if module.recommendations %}

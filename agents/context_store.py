@@ -32,9 +32,9 @@ class PageData:
 
 @dataclass
 class ScreenshotData:
-    """Screenshot captured during crawling."""
+    """Screenshot captured during crawling or by screenshot agent."""
     url: str
-    screenshot_type: str = "full_page"  # "full_page" or "element"
+    screenshot_type: str = "full_page"  # full_page, hero, h1, cta_primary, nav, footer, pricing, testimonial, form, mobile_full, mockup
     file_path: str = ""
     base64_data: str = ""
     width: int = 0
@@ -42,6 +42,10 @@ class ScreenshotData:
     element_selector: str = ""
     captured_at: str = ""
     annotations: list[dict] = field(default_factory=list)
+    element_uid: str = ""       # MCP accessibility tree UID
+    page_type: str = ""         # home, pricing, product, etc.
+    description: str = ""       # Human-readable label
+    mockup_for: str = ""        # If this is a mockup, what recommendation it illustrates
 
 
 @dataclass
@@ -76,7 +80,8 @@ class ContextStore:
 
     async def set_screenshot(self, screenshot: ScreenshotData) -> None:
         async with self._lock:
-            self.screenshots[screenshot.url] = screenshot
+            key = f"{screenshot.url}::{screenshot.screenshot_type}"
+            self.screenshots[key] = screenshot
 
     async def set_analysis(self, agent_name: str, analysis: Any) -> None:
         async with self._lock:
@@ -115,3 +120,23 @@ class ContextStore:
     def get_pages_by_type(self, page_type: str) -> list[PageData]:
         """Get all pages of a specific type."""
         return [p for p in self.pages.values() if p.page_type == page_type]
+
+    def get_screenshots_for_url(self, url: str) -> list[ScreenshotData]:
+        """Get all screenshots for a given URL."""
+        return [s for key, s in self.screenshots.items() if key.startswith(f"{url}::")]
+
+    def get_screenshots_by_type(self, screenshot_type: str) -> list[ScreenshotData]:
+        """Get all screenshots of a given type across all URLs."""
+        return [s for s in self.screenshots.values() if s.screenshot_type == screenshot_type]
+
+    def get_element_screenshots(self, url: Optional[str] = None) -> list[ScreenshotData]:
+        """Get all element-level screenshots, optionally filtered by URL."""
+        element_types = {"hero", "h1", "cta_primary", "nav", "footer", "pricing", "testimonial", "form"}
+        results = [s for s in self.screenshots.values() if s.screenshot_type in element_types]
+        if url:
+            results = [s for s in results if s.url == url]
+        return results
+
+    def get_mockup_screenshots(self) -> list[ScreenshotData]:
+        """Get all mockup screenshots."""
+        return [s for s in self.screenshots.values() if s.mockup_for]

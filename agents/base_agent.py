@@ -240,6 +240,24 @@ class BaseAgent(ABC):
             self._last_error = f"{type(e).__name__}: {e}"
             raise
 
+    async def call_llm_vision(
+        self, prompt: str, images: list[dict], system: str = ""
+    ) -> str:
+        """Call Claude's vision API with images.
+
+        Args:
+            images: list of dicts with "base64" and optional "media_type" keys.
+        """
+        if not self.llm:
+            err = f"[{self.agent_name}] No LLM client configured"
+            self._last_error = err
+            raise RuntimeError(err)
+        try:
+            return await self.llm.complete_with_vision(prompt, images, system=system)
+        except Exception as e:
+            self._last_error = f"{type(e).__name__}: {e}"
+            raise
+
     async def call_llm_json(self, prompt: str, system: str = "") -> str:
         """Call the Claude API expecting JSON output. Adds JSON-only instruction.
 

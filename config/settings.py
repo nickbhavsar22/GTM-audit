@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     audit_timeout_minutes: int = 45
     rate_limit_per_hour: int = 5
 
+    # Screenshot / MCP Config
+    screenshot_enabled: bool = True
+    screenshot_max_pages: int = 8
+    screenshot_viewport_width: int = 1440
+    screenshot_viewport_height: int = 900
+    mockup_generation_enabled: bool = True
+
     # Backend
     backend_host: str = "127.0.0.1"
     backend_port: int = 8000

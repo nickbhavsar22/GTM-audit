@@ -65,7 +65,7 @@ Generate 5-8 specific recommendations with real examples from the content."""
 class MessagingAgent(BaseAgent):
     agent_name = "messaging"
     agent_display_name = "Messaging & Positioning"
-    dependencies = ["web_scraper"]
+    dependencies = ["web_scraper", "screenshot"]
 
     async def run(self) -> dict[str, Any]:
         await self.update_progress(10, "Extracting messaging data")
@@ -74,7 +74,8 @@ class MessagingAgent(BaseAgent):
         ctas = self._extract_ctas()
         testimonials = self._extract_testimonials()
 
-        await self.update_progress(40, "Analyzing messaging with AI")
+        # Check for screenshot data
+        screenshots = self._get_messaging_screenshots()
 
         prompt = MESSAGING_PROMPT.format(
             company_url=self.context.company_url,
@@ -85,7 +86,21 @@ class MessagingAgent(BaseAgent):
         )
 
         try:
-            response = await self.call_llm_json(prompt, system=MESSAGING_SYSTEM)
+            if screenshots:
+                await self.update_progress(40, "Analyzing messaging with AI Vision")
+                image_labels = "\n".join(f"- Image {i+1}: {s['label']}" for i, s in enumerate(screenshots))
+                vision_addendum = (
+                    f"\n\nI've also attached screenshots of the website. "
+                    f"Analyze the visual presentation of the messaging:\n{image_labels}\n"
+                    f"Reference what you see in the screenshots in your analysis."
+                )
+                enhanced_prompt = prompt + vision_addendum
+                vision_images = [{"base64": s["base64"], "media_type": "image/png"} for s in screenshots]
+                response = await self.call_llm_vision(enhanced_prompt, vision_images, system=MESSAGING_SYSTEM)
+            else:
+                await self.update_progress(40, "Analyzing messaging with AI")
+                response = await self.call_llm_json(prompt, system=MESSAGING_SYSTEM)
+
             result = self.parse_json(response)
 
             if not result:
@@ -95,23 +110,49 @@ class MessagingAgent(BaseAgent):
 
             await self.update_progress(85, "Compiling messaging report")
 
+            # Add screenshot_ref to headline recommendations
+            recs = result.get("recommendations", [])
+            for rec in recs:
+                if isinstance(rec, dict):
+                    issue_lower = rec.get("issue", "").lower()
+                    if "headline" in issue_lower or "value prop" in issue_lower or "h1" in issue_lower:
+                        rec["screenshot_ref"] = "homepage_hero"
+
             return {
                 "score": result.get("overall_score", 50),
                 "grade": None,
                 "analysis_text": result.get("analysis_summary", ""),
-                "recommendations": result.get("recommendations", []),
+                "recommendations": recs,
                 "result_data": {
                     "score_items": result.get("score_items", []),
                     "strengths": result.get("strengths", []),
                     "weaknesses": result.get("weaknesses", []),
                     "current_value_proposition": result.get("current_value_proposition", ""),
                     "messaging_pillars": result.get("messaging_pillars", []),
-                    "recommendations": result.get("recommendations", []),
+                    "recommendations": recs,
+                    "vision_enabled": bool(screenshots),
                 },
             }
         except Exception as e:
             logger.error(f"Messaging analysis failed: {e}")
             return self._fallback_result()
+
+    def _get_messaging_screenshots(self) -> list[dict]:
+        """Get hero and headline screenshots for messaging analysis."""
+        result = []
+        for s in self.context.screenshots.values():
+            if s.page_type == "home" and s.screenshot_type == "hero" and s.base64_data:
+                result.append({"base64": s.base64_data, "label": "Homepage hero section"})
+                break
+        for s in self.context.screenshots.values():
+            if s.page_type == "home" and s.screenshot_type == "h1" and s.base64_data:
+                result.append({"base64": s.base64_data, "label": "Homepage primary headline"})
+                break
+        for s in self.context.screenshots.values():
+            if s.page_type == "home" and s.screenshot_type == "full_page" and s.base64_data:
+                result.append({"base64": s.base64_data, "label": "Homepage full page"})
+                break
+        return result[:3]
 
     def _extract_messaging_data(self) -> str:
         """Extract messaging-relevant content from key pages."""

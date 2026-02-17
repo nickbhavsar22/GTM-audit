@@ -31,3 +31,6 @@ bcrypt>=4.1.0
 
 # Image Processing
 Pillow>=10.0.0
+
+# MCP Client (Chrome DevTools integration)
+mcp>=1.0.0

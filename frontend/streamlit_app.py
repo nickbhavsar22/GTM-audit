@@ -40,7 +40,9 @@ with st.sidebar:
         st.image(str(_logo_path), width=200)
     else:
         st.markdown("### Bhavsar Growth Consulting")
-    st.caption("GTM Audit Platform  \nv0.1.0")
+    _version_file = Path(__file__).resolve().parent.parent / "VERSION"
+    _version = _version_file.read_text().strip() if _version_file.exists() else "0.0.0"
+    st.caption(f"GTM Audit Platform  \nv{_version}")
     st.markdown("---")
 
     if st.session_state.get("confirm_logout"):

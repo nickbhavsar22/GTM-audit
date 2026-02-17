@@ -71,6 +71,10 @@ class ReportAgent(BaseAgent):
             module = self._build_module_score(agent_name.value, display_name, analysis)
             report.modules.append(module)
 
+        # Generate visual mockups for top recommendations
+        await self.update_progress(55, "Generating visual mockups")
+        await self._generate_mockups(report)
+
         await self.update_progress(60, "Rendering HTML report")
 
         # Gather company profile for template
@@ -78,11 +82,15 @@ class ReportAgent(BaseAgent):
         if company_data and company_data.get("status") == "completed":
             company_profile = company_data.get("result_data", {})
 
-        # Render HTML
+        # Render HTML with screenshots
         from reports.renderer import ReportRenderer
 
         renderer = ReportRenderer()
-        html_content = renderer.render_html(report, company_profile=company_profile)
+        html_content = renderer.render_html(
+            report,
+            company_profile=company_profile,
+            screenshots=dict(self.context.screenshots),
+        )
 
         await self.update_progress(75, "Generating Markdown export")
 
@@ -117,6 +125,50 @@ class ReportAgent(BaseAgent):
                 "overall_grade": report.overall_grade.value,
             },
         }
+
+    async def _generate_mockups(self, report: AuditReport) -> None:
+        """Generate visual mockups for top headline/CTA recommendations."""
+        from config.settings import get_settings
+        settings = get_settings()
+
+        if not settings.mockup_generation_enabled:
+            return
+
+        # Find headline-related recommendations from messaging module
+        headline_recs = [
+            r for r in report.get_all_recommendations()
+            if any(kw in r.issue.lower() for kw in ("headline", "value prop", "h1", "tagline"))
+        ]
+
+        if not headline_recs:
+            return
+
+        try:
+            from agents.mockup_generator import MockupGenerator
+            from agents.mcp_browser_client import MCPBrowserClient
+
+            async with MCPBrowserClient(audit_id=self.context.audit_id) as browser:
+                generator = MockupGenerator(self.context, browser)
+
+                for i, rec in enumerate(headline_recs[:2]):
+                    # Use the recommendation text as the suggested headline
+                    suggested = rec.recommendation
+                    # Truncate to reasonable headline length
+                    if len(suggested) > 120:
+                        suggested = suggested[:117] + "..."
+
+                    html = generator.generate_headline_mockup_html(
+                        suggested_h1=suggested,
+                    )
+                    await generator.generate_and_screenshot_mockup(
+                        html,
+                        mockup_name=f"headline_mockup_{i}",
+                        recommendation_ref=rec.issue,
+                    )
+                    logger.info(f"Generated mockup for: {rec.issue[:60]}")
+
+        except Exception as e:
+            logger.warning(f"Mockup generation failed (non-critical): {e}")
 
     def _build_module_score(
         self, agent_name: str, display_name: str, analysis: dict

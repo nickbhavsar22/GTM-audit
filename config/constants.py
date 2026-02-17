@@ -25,6 +25,7 @@ class AgentStatus(str, Enum):
 
 class AgentName(str, Enum):
     WEB_SCRAPER = "web_scraper"
+    SCREENSHOT = "screenshot"
     COMPANY_RESEARCH = "company_research"
     COMPETITOR = "competitor"
     REVIEW_SENTIMENT = "review_sentiment"
@@ -39,6 +40,7 @@ class AgentName(str, Enum):
 
 AGENT_DISPLAY_NAMES: dict[str, str] = {
     AgentName.WEB_SCRAPER: "Web Scraper",
+    AgentName.SCREENSHOT: "Visual Screenshot Capture",
     AgentName.COMPANY_RESEARCH: "Company Research",
     AgentName.COMPETITOR: "Competitor Intelligence",
     AgentName.REVIEW_SENTIMENT: "Reviews & Sentiment",
@@ -56,6 +58,7 @@ ALL_AGENT_NAMES: list[str] = [a.value for a in AgentName]
 # Agents that run in a quick audit (subset)
 QUICK_AUDIT_AGENTS: list[str] = [
     AgentName.WEB_SCRAPER,
+    AgentName.SCREENSHOT,
     AgentName.COMPANY_RESEARCH,
     AgentName.SEO,
     AgentName.MESSAGING,

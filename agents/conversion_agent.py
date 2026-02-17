@@ -69,7 +69,7 @@ Provide a JSON response:
 class ConversionAgent(BaseAgent):
     agent_name = "conversion"
     agent_display_name = "Conversion Optimization"
-    dependencies = ["web_scraper"]
+    dependencies = ["web_scraper", "screenshot"]
 
     async def run(self) -> dict[str, Any]:
         await self.update_progress(10, "Mapping conversion elements")
@@ -79,7 +79,8 @@ class ConversionAgent(BaseAgent):
         forms = self._extract_all_forms()
         key_pages = self._extract_key_pages()
 
-        await self.update_progress(40, "Analyzing conversion funnel with AI")
+        # Check for screenshot data
+        screenshots = self._get_conversion_screenshots()
 
         prompt = CRO_PROMPT.format(
             company_url=self.context.company_url,
@@ -90,7 +91,21 @@ class ConversionAgent(BaseAgent):
         )
 
         try:
-            response = await self.call_llm_json(prompt, system=CRO_SYSTEM)
+            if screenshots:
+                await self.update_progress(40, "Analyzing conversion elements with AI Vision")
+                image_labels = "\n".join(f"- Image {i+1}: {s['label']}" for i, s in enumerate(screenshots))
+                vision_addendum = (
+                    f"\n\nI've also attached screenshots of key conversion elements. "
+                    f"Analyze the visual effectiveness of CTAs, forms, and trust signals:\n{image_labels}\n"
+                    f"Reference what you see in the screenshots in your analysis."
+                )
+                enhanced_prompt = prompt + vision_addendum
+                vision_images = [{"base64": s["base64"], "media_type": "image/png"} for s in screenshots]
+                response = await self.call_llm_vision(enhanced_prompt, vision_images, system=CRO_SYSTEM)
+            else:
+                await self.update_progress(40, "Analyzing conversion funnel with AI")
+                response = await self.call_llm_json(prompt, system=CRO_SYSTEM)
+
             result = self.parse_json(response)
 
             if not result:
@@ -110,11 +125,30 @@ class ConversionAgent(BaseAgent):
                     "strengths": result.get("strengths", []),
                     "weaknesses": result.get("weaknesses", []),
                     "recommendations": result.get("recommendations", []),
+                    "vision_enabled": bool(screenshots),
                 },
             }
         except Exception as e:
             logger.error(f"CRO analysis failed: {e}")
             return self._fallback_result()
+
+    def _get_conversion_screenshots(self) -> list[dict]:
+        """Get CTA and form screenshots for conversion analysis."""
+        result = []
+        for s in self.context.screenshots.values():
+            if s.screenshot_type == "cta_primary" and s.base64_data:
+                result.append({"base64": s.base64_data, "label": f"CTA on {s.page_type} page"})
+                if len(result) >= 2:
+                    break
+        for s in self.context.screenshots.values():
+            if s.screenshot_type == "form" and s.base64_data:
+                result.append({"base64": s.base64_data, "label": f"Form on {s.page_type} page"})
+                break
+        for s in self.context.screenshots.values():
+            if s.page_type == "pricing" and s.screenshot_type == "full_page" and s.base64_data:
+                result.append({"base64": s.base64_data, "label": "Pricing page"})
+                break
+        return result[:4]
 
     def _extract_site_structure(self) -> str:
         page_types = {}

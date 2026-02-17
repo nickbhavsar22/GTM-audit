@@ -16,6 +16,9 @@ from backend.middleware.rate_limit import RateLimitMiddleware
 from config.logging_config import setup_logging
 from config.settings import get_settings
 
+_VERSION_FILE = Path(__file__).resolve().parent.parent / "VERSION"
+_APP_VERSION = _VERSION_FILE.read_text().strip() if _VERSION_FILE.exists() else "0.0.0"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,7 +36,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="GTM Audit API",
-        version="0.1.0",
+        version=_APP_VERSION,
         lifespan=lifespan,
         docs_url=docs_url,
         redoc_url=redoc_url,
