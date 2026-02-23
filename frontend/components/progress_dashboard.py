@@ -10,7 +10,7 @@ from config.constants import AGENT_DISPLAY_NAMES
 
 
 def render_progress_dashboard(audit_id: str) -> None:
-    """Display progress bars for all agents with auto-refresh."""
+    """Display progress cards for all agents with auto-refresh."""
     db = SessionLocal()
     try:
         service = AuditService(db)
@@ -27,7 +27,7 @@ def render_progress_dashboard(audit_id: str) -> None:
     overall_status = status_data.status
 
     if overall_status == "completed":
-        st.success("Audit completed! (v6)")
+        st.success("Audit completed!")
         # Show any diagnostic info (e.g. LLM async test failures)
         if status_data.error_message:
             st.warning(f"Diagnostic: {status_data.error_message}")
@@ -58,37 +58,83 @@ def render_progress_dashboard(audit_id: str) -> None:
         _show_agent_details(status_data.agents)
         return
 
-    # Agent progress bars
-    st.markdown("### Agent Progress")
+    # --- In-progress: show agent progress cards ---
     agents = status_data.agents or []
 
+    # Summary counters
+    completed_count = sum(1 for a in agents if (a.status or "pending") == "completed")
+    running_count = sum(1 for a in agents if (a.status or "pending") == "running")
+    failed_count = sum(1 for a in agents if (a.status or "pending") == "failed")
+    pending_count = len(agents) - completed_count - running_count - failed_count
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Completed", f"{completed_count}/{len(agents)}")
+    with col2:
+        st.metric("Running", str(running_count))
+    with col3:
+        st.metric("Pending", str(pending_count))
+    with col4:
+        st.metric("Failed", str(failed_count))
+
+    # Agent progress cards
+    st.markdown("### Agent Progress")
+    cards_html = ""
     for agent in agents:
-        name = agent.agent_name
-        display_name = AGENT_DISPLAY_NAMES.get(name, name)
-        progress = (agent.progress_pct or 0) / 100.0
-        current_task = agent.current_task or "Waiting..."
-        agent_status = agent.status or "pending"
+        display_name = AGENT_DISPLAY_NAMES.get(agent.agent_name, agent.agent_name)
+        cards_html += _render_agent_card(agent, display_name)
 
-        if agent_status == "completed":
-            score_str = f" (Score: {agent.score})" if agent.score is not None else ""
-            label = f"{display_name}: Complete{score_str}"
-        elif agent_status == "failed":
-            label = f"{display_name}: Failed"
-        elif agent_status == "running":
-            label = f"{display_name}: {current_task}"
-        else:
-            label = f"{display_name}: Waiting..."
-
-        st.progress(progress, text=label)
-
-        # Show errors inline
-        if agent_status == "failed" and agent.error_message:
-            st.caption(f"Error: {agent.error_message[:200]}")
+    st.markdown(cards_html, unsafe_allow_html=True)
 
     # Auto-refresh while running
     if overall_status == "running":
         time.sleep(3)
         st.rerun()
+
+
+def _render_agent_card(agent, display_name: str) -> str:
+    """Generate HTML for a single agent progress card."""
+    status = agent.status or "pending"
+    progress_pct = agent.progress_pct or 0
+
+    badge_text = {
+        "pending": "Pending",
+        "running": "Running",
+        "completed": "Complete",
+        "failed": "Failed",
+    }.get(status, status.capitalize())
+
+    # Detail line below the progress bar
+    if status == "completed":
+        parts = []
+        if agent.score is not None:
+            parts.append(f'<span class="agent-score">{agent.score:.0f}/100</span>')
+        if agent.grade:
+            parts.append(f'<span class="agent-score">({agent.grade})</span>')
+        detail = " ".join(parts) if parts else "Done"
+    elif status == "failed":
+        error_msg = (agent.error_message or "Unknown error")[:120]
+        detail = f'<span style="color:#EF5350">{error_msg}</span>'
+    elif status == "running":
+        task_text = agent.current_task or "Processing..."
+        if "AI" in task_text:
+            detail = f'{task_text} <span class="elapsed-pulse">\u2014 waiting for response\u2026</span>'
+        else:
+            detail = task_text
+    else:
+        detail = "Queued"
+
+    return f"""<div class="agent-progress-card state-{status}">
+  <div class="agent-header">
+    <span class="agent-name">{display_name}</span>
+    <span class="agent-status-badge badge-{status}">{badge_text}</span>
+  </div>
+  <div class="agent-progress-track">
+    <div class="agent-progress-fill fill-{status}" style="width:{progress_pct}%"></div>
+  </div>
+  <div class="agent-progress-detail">{detail}</div>
+</div>
+"""
 
 
 def _show_agent_details(agents) -> None:

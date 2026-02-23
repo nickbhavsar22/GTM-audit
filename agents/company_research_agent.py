@@ -8,11 +8,9 @@ from agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
-COMPANY_RESEARCH_SYSTEM = """You are a B2B SaaS company research analyst. Analyze the provided website content
-and extract a comprehensive company profile. Be factual — only report what you can confirm from the content.
-If information is not available, use null. Do not invent data."""
+COMPANY_RESEARCH_SYSTEM = """You are a B2B SaaS company research analyst who builds comprehensive company profiles for GTM strategy audits. You extract not just factual data but strategic context — understanding the company's market position, competitive landscape, and growth stage. Be factual — only report what you can confirm from the content. If information is not available, use null. Do not invent data. However, you CAN make reasonable inferences about market position and competitive landscape based on the evidence available, clearly labeled as inferences."""
 
-COMPANY_RESEARCH_PROMPT = """Analyze this company's website content and extract a structured company profile.
+COMPANY_RESEARCH_PROMPT = """Analyze this company's website content and extract a comprehensive company profile. This profile will provide context for the entire GTM audit, so be thorough.
 
 Website: {company_url}
 
@@ -22,35 +20,52 @@ SCRAPED CONTENT:
 Return a JSON object with this structure:
 {{
     "company_name": "string",
-    "tagline": "string or null",
-    "description": "1-2 sentence description of what the company does",
+    "tagline": "string or null — their primary tagline/H1",
+    "description": "2-3 sentence description of what the company does and for whom",
     "industry": "string (e.g., 'Marketing Technology', 'Sales Enablement')",
     "category": "string (e.g., 'CRM', 'Analytics', 'Automation')",
+    "subcategory": "more specific category if applicable",
     "target_market": "B2B, B2C, or Both",
-    "company_size_indicators": "startup, growth, enterprise — based on evidence",
-    "value_proposition": "their primary value proposition",
+    "company_size_indicators": "startup, growth, enterprise — based on evidence from the site",
+    "growth_stage_evidence": ["list of signals indicating growth stage (team size, funding mentions, customer count, office locations)"],
+    "value_proposition": "their primary value proposition as stated on the site",
+    "value_proposition_assessment": "brief assessment of how clear and compelling the value prop is",
     "products": ["list of products/services mentioned"],
+    "key_features": ["list of key features or capabilities highlighted"],
     "target_audience": {{
         "industries": ["list of target industries mentioned"],
         "company_sizes": ["SMB", "Mid-Market", "Enterprise"],
-        "roles": ["list of target job roles/titles mentioned"]
+        "roles": ["list of target job roles/titles mentioned"],
+        "primary_buyer": "the most likely primary buyer persona based on messaging"
     }},
     "proof_points": {{
         "customer_logos": ["list of customer names shown"],
+        "customer_count_claim": "any claimed customer count (e.g., '500+ companies')",
         "metrics": ["list of quantitative claims, e.g., '10x faster'"],
         "awards": ["list of awards/certifications"],
-        "integrations": ["list of integrations mentioned"]
+        "integrations": ["list of integrations mentioned"],
+        "trust_signals": ["SOC 2", "GDPR", "G2 badges", etc.]
     }},
     "content_strategy": {{
-        "has_blog": true/false,
-        "has_case_studies": true/false,
-        "has_resources": true/false,
-        "has_documentation": true/false,
-        "content_themes": ["list of main content themes"]
+        "has_blog": true|false,
+        "has_case_studies": true|false,
+        "has_resources": true|false,
+        "has_documentation": true|false,
+        "has_webinars": true|false,
+        "content_themes": ["list of main content themes"],
+        "content_maturity": "nascent|developing|mature — assessment of content program"
     }},
     "business_model": {{
-        "pricing_model": "freemium/free-trial/demo-request/contact-sales/unknown",
-        "has_pricing_page": true/false
+        "pricing_model": "freemium|free-trial|demo-request|contact-sales|unknown",
+        "has_pricing_page": true|false,
+        "pricing_transparency": "transparent|semi-transparent|opaque",
+        "self_serve_possible": true|false
+    }},
+    "competitive_context": {{
+        "likely_competitors": ["list of likely competitors based on positioning — use your knowledge"],
+        "market_category": "the specific market category this company competes in",
+        "positioning_approach": "category creator|challenger|niche|horizontal — how they position",
+        "competitive_moat_signals": ["any evidence of defensible differentiation"]
     }},
     "technology_stack": ["any technologies detected from the website"]
 }}"""
@@ -91,7 +106,7 @@ class CompanyResearchAgent(BaseAgent):
 
             # Update company name if found
             if profile.get("company_name"):
-                self.context.company_name = profile["company_name"]
+                await self.context.set_company_name(profile["company_name"])
 
             await self.update_progress(80, "Generating company analysis")
 

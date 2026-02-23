@@ -13,7 +13,7 @@ from frontend.utils.brand_loader import inject_brand_css
 
 st.set_page_config(
     page_title="Audit History - GTM Audit",
-    page_icon=":material/analytics:",
+    page_icon="\U0001f4ca",
     layout="wide",
 )
 

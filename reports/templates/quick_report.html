@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GTM Audit — {{ company_name }}</title>
+    {% if embedded_font_css %}<style>{{ embedded_font_css | safe }}</style>{% endif %}
+    <title>GTM Diagnostic Audit — {{ company_name }}</title>
     <style>
         :root {
             --ink: #1B1B1B;
@@ -40,17 +41,41 @@
 
         .page { max-width: 960px; margin: 0 auto; padding: 0 2rem 4rem; }
 
-        /* ── HERO ──────────────────────────────────────────── */
-        .hero {
+        /* ── REPORT HEADER BAR ────────────────────────────────── */
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 2rem;
+            background: var(--slate);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        .report-header-logo { height: 28px; opacity: 0.85; }
+        .report-header-meta {
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            letter-spacing: 0.03em;
+        }
+
+        /* ── COVER PAGE ───────────────────────────────────────── */
+        .cover {
             position: relative;
-            padding: 3.5rem 2rem 3rem;
+            min-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             text-align: center;
+            padding: 4rem 2rem;
             background: linear-gradient(170deg, #1B1B1B 0%, #2A2230 40%, #1F1F3A 70%, #1B1B1B 100%);
             border-bottom: 3px solid;
             border-image: linear-gradient(90deg, #FE7B02, #FE3F21, #F858BC, #575ECF) 1;
             overflow: hidden;
         }
-        .hero::before {
+        .cover::before {
             content: '';
             position: absolute;
             top: -60%;
@@ -61,49 +86,60 @@
             background: radial-gradient(circle, rgba(87,94,207,0.06) 0%, transparent 65%);
             pointer-events: none;
         }
-        .hero-brand {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        .cover-type {
             font-size: 0.7rem;
             font-weight: 600;
-            letter-spacing: 0.25em;
+            letter-spacing: 0.3em;
             text-transform: uppercase;
             color: var(--accent);
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
         }
-        .hero h1 {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 2.6rem;
+        .cover h1 {
+            font-size: 2.8rem;
             font-weight: 800;
-            line-height: 1.15;
+            line-height: 1.12;
             color: var(--text);
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.4rem;
         }
-        .hero-company {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 1.5rem;
+        .cover-company {
+            font-size: 1.6rem;
             font-weight: 700;
             font-style: italic;
             color: var(--accent-light);
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
         }
-        .hero-meta {
-            font-size: 0.8rem;
+        .cover-subtitle {
+            font-size: 1.05rem;
+            color: var(--text-mid);
+            max-width: 500px;
+            margin: 0 auto 2.5rem;
+            line-height: 1.5;
+        }
+        .cover-date {
+            font-size: 0.82rem;
             color: var(--text-dim);
-            margin-top: 1.5rem;
+            margin-top: 1rem;
         }
-        .hero-meta a { color: var(--text-mid); text-decoration: none; }
+        .cover-firm {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-top: 2.5rem;
+        }
 
-        /* Score ring */
+        /* Score ring on cover */
         .score-ring {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 130px;
-            height: 130px;
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
             border: 4px solid var(--border);
             position: relative;
-            margin: 0.5rem 0;
+            margin: 1rem 0;
         }
         .score-ring-fill {
             position: absolute;
@@ -115,13 +151,12 @@
             transform: rotate(45deg);
         }
         .score-number {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 2.8rem;
+            font-size: 2.6rem;
             font-weight: 800;
             line-height: 1;
         }
         .score-label {
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             letter-spacing: 0.15em;
             text-transform: uppercase;
             color: var(--text-dim);
@@ -129,15 +164,46 @@
         }
         .grade-badge {
             display: inline-block;
-            padding: 0.3rem 1rem;
+            padding: 0.25rem 0.85rem;
             border-radius: 6px;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             font-weight: 700;
             letter-spacing: 0.05em;
-            margin-top: 0.75rem;
         }
 
-        /* ── SECTIONS ──────────────────────────────────────── */
+        /* ── TABLE OF CONTENTS ────────────────────────────────── */
+        .toc {
+            padding: 2rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .toc-list {
+            list-style: none;
+            counter-reset: toc-counter;
+        }
+        .toc-list li {
+            counter-increment: toc-counter;
+            padding: 0.45rem 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.88rem;
+        }
+        .toc-list li:last-child { border-bottom: none; }
+        .toc-list li a {
+            color: var(--text);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .toc-list li a:hover { color: var(--accent-light); }
+        .toc-list li a::before {
+            content: counter(toc-counter, decimal-leading-zero);
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--accent);
+            min-width: 24px;
+        }
+
+        /* ── SECTIONS ─────────────────────────────────────────── */
         .section {
             padding: 2.5rem 0;
             border-bottom: 1px solid var(--border);
@@ -153,13 +219,18 @@
             margin-bottom: 0.5rem;
         }
         .section-title {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 1.6rem;
             font-weight: 700;
             margin-bottom: 1.25rem;
         }
+        .section-subtitle {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
 
-        /* ── CARDS ──────────────────────────────────────────── */
+        /* ── CARDS & CALLOUTS ─────────────────────────────────── */
         .card {
             background: var(--card);
             border: 1px solid var(--border);
@@ -167,24 +238,42 @@
             padding: 1.25rem 1.5rem;
             margin-bottom: 0.75rem;
         }
-        .card-alt {
-            background: var(--card-alt);
+        .callout-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 6px 6px 0;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+        }
+        .callout-box .callout-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 0.3rem;
+        }
+        .callout-box .callout-text {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text);
         }
 
-        /* ── GRID ──────────────────────────────────────────── */
+        /* ── GRID ─────────────────────────────────────────────── */
         .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 0.75rem;
         }
 
-        /* ── EXECUTIVE SUMMARY PILLS ──────────────────────── */
+        /* ── EXECUTIVE SUMMARY PILLS ──────────────────────────── */
         .pill-list { list-style: none; }
         .pill-list li {
-            padding: 0.6rem 0;
+            padding: 0.5rem 0;
             border-bottom: 1px solid var(--border);
-            font-size: 0.9rem;
-            line-height: 1.5;
+            font-size: 0.88rem;
+            line-height: 1.45;
         }
         .pill-list li:last-child { border-bottom: none; }
         .pill-list.strengths li::before {
@@ -192,58 +281,110 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 20px;
-            height: 20px;
+            width: 20px; height: 20px;
             border-radius: 5px;
             background: var(--green-dim);
             color: var(--green);
             font-weight: 700;
             font-size: 0.85rem;
             margin-right: 0.6rem;
-            flex-shrink: 0;
         }
         .pill-list.gaps li::before {
             content: '!';
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 20px;
-            height: 20px;
+            width: 20px; height: 20px;
             border-radius: 5px;
             background: var(--red-dim);
             color: var(--red);
             font-weight: 700;
             font-size: 0.75rem;
             margin-right: 0.6rem;
-            flex-shrink: 0;
         }
 
-        /* ── QUICK WINS ────────────────────────────────────── */
-        .qw-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-left: 3px solid var(--accent);
-            border-radius: 0 6px 6px 0;
-            padding: 1rem 1.25rem;
-            margin-bottom: 0.6rem;
+        /* ── PRIORITY MATRIX ──────────────────────────────────── */
+        .priority-matrix {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 2px;
+            background: var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            min-height: 320px;
         }
-        .qw-area {
-            font-size: 0.7rem;
-            font-weight: 600;
+        .matrix-quadrant {
+            background: var(--card);
+            padding: 1rem;
+            position: relative;
+        }
+        .matrix-quadrant-label {
+            font-size: 0.65rem;
+            font-weight: 700;
             letter-spacing: 0.12em;
             text-transform: uppercase;
-            color: var(--accent);
+            margin-bottom: 0.5rem;
         }
-        .qw-issue {
-            font-weight: 600;
-            margin: 0.2rem 0;
-        }
-        .qw-rec {
-            font-size: 0.88rem;
+        .q-quickwins { color: var(--green); }
+        .q-strategic { color: var(--accent); }
+        .q-lowpri { color: var(--text-dim); }
+        .q-higheffort { color: var(--yellow); }
+        .matrix-item {
+            font-size: 0.78rem;
+            padding: 0.25rem 0;
             color: var(--text-mid);
+            line-height: 1.35;
+        }
+        .matrix-item .dot {
+            display: inline-block;
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            margin-right: 0.4rem;
+            vertical-align: middle;
+        }
+        .matrix-axis-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-top: 0.5rem;
+        }
+        .matrix-y-label {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            text-align: right;
+            margin-bottom: 0.5rem;
         }
 
-        /* ── COMPANY PROFILE ───────────────────────────────── */
+        /* ── VALUE PROPOSITION ─────────────────────────────────── */
+        .vp-callout {
+            border: 2px solid var(--accent);
+            border-radius: 6px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1rem;
+            background: var(--accent-glow);
+        }
+        .vp-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 0.3rem;
+        }
+        .vp-text {
+            font-size: 1.1rem;
+            font-style: italic;
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        /* ── COMPANY PROFILE ──────────────────────────────────── */
         .profile-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -273,213 +414,9 @@
             margin: 0.15rem 0.2rem 0.15rem 0;
         }
 
-        /* ── MODULE HEADER ─────────────────────────────────── */
-        .mod-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.25rem;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        .mod-header h2 {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
-        .mod-score-group {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-        }
-        .mod-pct {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 1.8rem;
-            font-weight: 800;
-        }
-
-        /* ── SCORE BREAKDOWN TABLE ─────────────────────────── */
-        .score-table { width: 100%; border-collapse: collapse; margin-bottom: 1.25rem; }
-        .score-table th {
-            text-align: left;
-            font-size: 0.7rem;
-            font-weight: 600;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: var(--text-dim);
-            padding: 0.5rem 0.75rem;
-            border-bottom: 1px solid var(--border);
-        }
-        .score-table td {
-            padding: 0.6rem 0.75rem;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.88rem;
-            vertical-align: middle;
-        }
-        .score-table tr:last-child td { border-bottom: none; }
-        .score-table .criterion { font-weight: 500; }
-        .score-table .score-val {
-            font-weight: 700;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            min-width: 45px;
-            text-align: right;
-        }
-        .score-table .notes-col {
-            color: var(--text-dim);
-            font-size: 0.82rem;
-        }
-
-        /* Progress bar */
-        .bar-track {
-            width: 100%;
-            min-width: 80px;
-            height: 6px;
-            background: var(--border);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        .bar-fill {
-            height: 100%;
-            border-radius: 3px;
-            transition: width 0.2s cubic-bezier(0.16, 1, 0.32, 1);
-        }
-
-        /* ── ANALYSIS TEXT ──────────────────────────────────── */
-        .analysis-text {
-            font-size: 0.92rem;
-            color: var(--text-mid);
-            line-height: 1.7;
-            white-space: pre-line;
-            padding: 1.25rem 1.5rem;
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            margin-bottom: 1.25rem;
-        }
-
-        /* ── STRENGTHS / WEAKNESSES ────────────────────────── */
-        .sw-card {
-            padding: 1.25rem 1.5rem;
-        }
-        .sw-title {
-            font-size: 0.7rem;
-            font-weight: 600;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            margin-bottom: 0.75rem;
-        }
-        .sw-title.green { color: var(--green); }
-        .sw-title.red { color: var(--red); }
-        .sw-list { list-style: none; }
-        .sw-list li {
-            padding: 0.45rem 0;
-            font-size: 0.88rem;
-            border-bottom: 1px solid var(--border);
-            color: var(--text-mid);
-        }
-        .sw-list li:last-child { border-bottom: none; }
-
-        /* ── RECOMMENDATION CARDS ──────────────────────────── */
-        .rec {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 1.25rem 1.5rem;
-            margin-bottom: 0.75rem;
-            position: relative;
-        }
-        .rec-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 0.75rem;
-            margin-bottom: 0.4rem;
-            flex-wrap: wrap;
-        }
-        .rec-issue {
-            font-weight: 600;
-            font-size: 0.95rem;
-            flex: 1;
-        }
-        .rec-badges { display: flex; gap: 0.35rem; flex-shrink: 0; flex-wrap: wrap; }
-        .badge-sm {
-            display: inline-block;
-            padding: 0.15rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            letter-spacing: 0.03em;
-        }
-        .badge-impact-High { background: var(--red-dim); color: var(--red); }
-        .badge-impact-Medium { background: var(--yellow-dim); color: var(--yellow); }
-        .badge-impact-Low { background: var(--green-dim); color: var(--green); }
-        .badge-effort { background: var(--blue-dim); color: var(--blue); }
-        .badge-timeline { background: var(--accent-glow); color: var(--accent); }
-
-        .rec-body {
-            font-size: 0.88rem;
-            color: var(--text-mid);
-            margin-bottom: 0.5rem;
-        }
-        .rec-context {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-            margin: 0.75rem 0;
-        }
-        .rec-ctx-box {
-            padding: 0.6rem 0.8rem;
-            border-radius: 6px;
-            font-size: 0.82rem;
-        }
-        .rec-ctx-box.current {
-            background: var(--red-dim);
-            border: 1px solid rgba(248,113,113,0.15);
-        }
-        .rec-ctx-box.best {
-            background: var(--green-dim);
-            border: 1px solid rgba(52,211,153,0.15);
-        }
-        .rec-ctx-label {
-            font-size: 0.68rem;
-            font-weight: 600;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            margin-bottom: 0.2rem;
-        }
-        .rec-ctx-label.current { color: var(--red); }
-        .rec-ctx-label.best { color: var(--green); }
-
-        .rec-steps {
-            margin-top: 0.6rem;
-            padding-top: 0.6rem;
-            border-top: 1px solid var(--border);
-        }
-        .rec-steps-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: var(--text-dim);
-            margin-bottom: 0.4rem;
-        }
-        .rec-steps ol {
-            padding-left: 1.2rem;
-            color: var(--text-mid);
-            font-size: 0.84rem;
-        }
-        .rec-steps ol li {
-            padding: 0.15rem 0;
-        }
-        .rec-metrics {
-            margin-top: 0.5rem;
-            font-size: 0.8rem;
-            color: var(--text-dim);
-        }
-
-        /* ── COMPETITOR TABLE ──────────────────────────────── */
-        .comp-table { width: 100%; border-collapse: collapse; }
-        .comp-table th {
+        /* ── SCORECARD TABLE ──────────────────────────────────── */
+        .scorecard { width: 100%; border-collapse: collapse; }
+        .scorecard th {
             text-align: left;
             font-size: 0.7rem;
             font-weight: 600;
@@ -489,44 +426,53 @@
             padding: 0.6rem 0.75rem;
             border-bottom: 2px solid var(--border);
         }
-        .comp-table td {
-            padding: 0.7rem 0.75rem;
+        .scorecard td {
+            padding: 0.65rem 0.75rem;
             border-bottom: 1px solid var(--border);
-            font-size: 0.85rem;
-            vertical-align: top;
+            font-size: 0.9rem;
+            vertical-align: middle;
         }
-        .comp-table tr:last-child td { border-bottom: none; }
-        .comp-name { font-weight: 600; color: var(--text); }
-        .comp-url { font-size: 0.78rem; color: var(--text-dim); }
-        .overlap-High { color: var(--red); }
-        .overlap-Medium { color: var(--yellow); }
-        .overlap-Low { color: var(--green); }
+        .scorecard tr:last-child td { border-bottom: none; }
+        .scorecard .mod-name { font-weight: 600; }
+        .scorecard .mod-score {
+            font-weight: 800;
+            text-align: right;
+            min-width: 50px;
+        }
+        .scorecard .bar-cell { width: 120px; }
+        .bar-track {
+            width: 100%;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .bar-fill { height: 100%; border-radius: 3px; }
 
-        /* ── MESSAGING CALLOUT ─────────────────────────────── */
-        .vp-callout {
-            border: 2px solid var(--accent);
-            border-radius: 6px;
-            padding: 1.25rem 1.5rem;
-            margin-bottom: 1rem;
-            background: var(--accent-glow);
+        /* ── BENCHMARK TRACK ──────────────────────────────────── */
+        .benchmark-track {
+            position: relative;
+            width: 100%;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: visible;
         }
-        .vp-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            color: var(--accent);
-            margin-bottom: 0.3rem;
+        .benchmark-marker {
+            position: absolute;
+            top: -4px;
+            width: 2px;
+            height: 14px;
+            background: var(--text-dim);
+            border-radius: 1px;
         }
-        .vp-text {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 1.1rem;
-            font-style: italic;
-            color: var(--text);
-            line-height: 1.5;
+        .benchmark-label {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            margin-top: 2px;
         }
 
-        /* ── ACTION PLAN ───────────────────────────────────── */
+        /* ── ACTION PLAN ──────────────────────────────────────── */
         .action-row {
             display: flex;
             align-items: flex-start;
@@ -536,7 +482,6 @@
         }
         .action-row:last-child { border-bottom: none; }
         .action-num {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 1.3rem;
             font-weight: 800;
             color: var(--accent);
@@ -561,60 +506,170 @@
             font-size: 0.85rem;
             color: var(--text-mid);
         }
-
-        /* ── EDITABLE ──────────────────────────────────────── */
-        [contenteditable="true"] {
-            outline: none;
-            transition: box-shadow 0.2s ease;
+        .action-meta {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.35rem;
         }
-        [contenteditable="true"]:hover {
-            box-shadow: inset 0 0 0 1px var(--border-light);
+        .rec-badges { display: flex; gap: 0.35rem; flex-shrink: 0; flex-wrap: wrap; }
+        .badge-sm {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
             border-radius: 4px;
-        }
-        [contenteditable="true"]:focus {
-            box-shadow: inset 0 0 0 2px var(--accent);
-            border-radius: 4px;
-        }
-
-        /* ── PRINT BUTTON ──────────────────────────────────── */
-        .print-btn {
-            position: fixed;
-            bottom: 1.5rem;
-            right: 1.5rem;
-            padding: 0.6rem 1.2rem;
-            background: var(--accent);
-            color: var(--ink);
-            border: none;
-            border-radius: 6px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 8px 8px -4px rgba(0, 0, 0, 0.08);
-            z-index: 100;
-            transition: 0.2s cubic-bezier(0.16, 1, 0.32, 1);
-        }
-        .print-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 8px 12px -4px rgba(0, 0, 0, 0.12);
-        }
-
-        /* ── FOOTER ────────────────────────────────────────── */
-        .footer {
-            text-align: center;
-            padding: 2.5rem 0;
-            color: var(--text-dim);
-            font-size: 0.78rem;
             letter-spacing: 0.03em;
         }
-        .footer-brand {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 1rem;
-            color: var(--text-mid);
-            margin-bottom: 0.3rem;
+        .badge-impact-High { background: var(--red-dim); color: var(--red); }
+        .badge-impact-Medium { background: var(--yellow-dim); color: var(--yellow); }
+        .badge-impact-Low { background: var(--green-dim); color: var(--green); }
+        .badge-effort { background: var(--blue-dim); color: var(--blue); }
+        .badge-owner {
+            background: var(--accent-glow);
+            color: var(--accent-light);
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
         }
 
-        /* ── SCREENSHOTS ──────────────────────────────────── */
+        /* ── BEFORE/AFTER CARDS ────────────────────────────────── */
+        .ba-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin: 0.5rem 0; }
+        .ba-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            font-size: 0.85rem;
+        }
+        .ba-card.before { border-left: 3px solid var(--red); }
+        .ba-card.after { border-left: 3px solid var(--green); }
+        .ba-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+        }
+        .ba-label.before { color: var(--red); }
+        .ba-label.after { color: var(--green); }
+
+        /* ── COMPETITOR TABLE ──────────────────────────────────── */
+        .comp-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .comp-table th {
+            text-align: left;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            padding: 0.5rem 0.75rem;
+            border-bottom: 2px solid var(--border);
+        }
+        .comp-table td {
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+        .comp-table tr:last-child td { border-bottom: none; }
+        .overlap-high { color: var(--red); font-weight: 600; }
+        .overlap-medium { color: var(--yellow); font-weight: 600; }
+        .overlap-low { color: var(--green); font-weight: 600; }
+
+        /* ── CLARITY SCORES ────────────────────────────────────── */
+        .clarity-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
+        .clarity-item {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .clarity-score { font-size: 2rem; font-weight: 800; line-height: 1; }
+        .clarity-max { font-size: 0.8rem; color: var(--text-dim); }
+        .clarity-question { font-size: 0.78rem; color: var(--text-mid); margin-top: 0.4rem; }
+
+        /* ── ROADMAP ──────────────────────────────────────────── */
+        .roadmap-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
+        .roadmap-col {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem 1.25rem;
+        }
+        .roadmap-header {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+        .roadmap-item {
+            padding: 0.4rem 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.82rem;
+        }
+        .roadmap-item:last-child { border-bottom: none; }
+        .roadmap-rationale {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-style: italic;
+            margin-top: 0.15rem;
+        }
+
+        /* ── MODULE ANALYSIS ──────────────────────────────────── */
+        .module-section {
+            padding: 2rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .module-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .module-score-display {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .module-score-num {
+            font-size: 1.6rem;
+            font-weight: 800;
+        }
+
+        /* ── REVENUE IMPACT TABLE ─────────────────────────────── */
+        .rev-table { width: 100%; border-collapse: collapse; }
+        .rev-table th {
+            text-align: left;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            padding: 0.6rem 0.75rem;
+            border-bottom: 2px solid var(--border);
+        }
+        .rev-table td {
+            padding: 0.55rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.88rem;
+        }
+        .rev-table tr:last-child td { border-bottom: none; }
+        .rev-table .metric-name { font-weight: 600; }
+        .rev-table .baseline { color: var(--text-mid); }
+        .rev-table .conservative { color: var(--yellow); }
+        .rev-table .aggressive { color: var(--green); }
+        .rev-table tfoot td {
+            font-weight: 700;
+            font-size: 0.95rem;
+            border-top: 2px solid var(--border);
+        }
+
+        /* ── SCREENSHOTS ──────────────────────────────────────── */
         .screenshot-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -665,23 +720,116 @@
             display: block;
         }
 
-        /* ── RESPONSIVE ────────────────────────────────────── */
+        /* ── READOUT APPENDIX ─────────────────────────────────── */
+        .talk-track-list {
+            list-style: none;
+            counter-reset: tt-counter;
+        }
+        .talk-track-list li {
+            counter-increment: tt-counter;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+        .talk-track-list li:last-child { border-bottom: none; }
+        .talk-track-list li::before {
+            content: counter(tt-counter) ".";
+            font-weight: 700;
+            color: var(--accent);
+            margin-right: 0.5rem;
+        }
+        .faq-item {
+            margin-bottom: 1rem;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 0.92rem;
+            color: var(--text);
+            margin-bottom: 0.3rem;
+        }
+        .faq-a {
+            font-size: 0.88rem;
+            color: var(--text-mid);
+            line-height: 1.6;
+        }
+
+        /* ── EDITABLE ─────────────────────────────────────────── */
+        [contenteditable="true"] {
+            outline: none;
+            transition: box-shadow 0.2s ease;
+        }
+        [contenteditable="true"]:hover {
+            box-shadow: inset 0 0 0 1px var(--border-light);
+            border-radius: 4px;
+        }
+        [contenteditable="true"]:focus {
+            box-shadow: inset 0 0 0 2px var(--accent);
+            border-radius: 4px;
+        }
+
+        /* ── PRINT BUTTON ─────────────────────────────────────── */
+        .print-btn {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            padding: 0.6rem 1.2rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 8px 8px -4px rgba(0, 0, 0, 0.08);
+            z-index: 100;
+            transition: 0.2s cubic-bezier(0.16, 1, 0.32, 1);
+        }
+        .print-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 12px -4px rgba(0, 0, 0, 0.12);
+        }
+
+        /* ── FOOTER ───────────────────────────────────────────── */
+        .footer {
+            text-align: center;
+            padding: 2.5rem 0;
+            color: var(--text-dim);
+            font-size: 0.78rem;
+            letter-spacing: 0.03em;
+        }
+        .footer-brand {
+            font-size: 1rem;
+            color: var(--text-mid);
+            margin-bottom: 0.3rem;
+        }
+
+        /* ── RESPONSIVE ───────────────────────────────────────── */
         @media (max-width: 700px) {
-            .hero h1 { font-size: 1.8rem; }
-            .hero-company { font-size: 1.15rem; }
-            .grid-2, .profile-grid, .rec-context { grid-template-columns: 1fr; }
-            .mod-header { flex-direction: column; align-items: flex-start; }
+            .cover h1 { font-size: 1.8rem; }
+            .cover-company { font-size: 1.15rem; }
+            .grid-2, .profile-grid { grid-template-columns: 1fr; }
             .page { padding: 0 1rem 3rem; }
             .screenshot-grid { grid-template-columns: 1fr; }
             .comparison-block { grid-template-columns: 1fr; }
+            .priority-matrix { grid-template-columns: 1fr; }
+            .roadmap-grid { grid-template-columns: 1fr; }
+            .clarity-grid { grid-template-columns: 1fr; }
+            .report-header { padding: 0.75rem 1rem; }
         }
 
-        /* ── PRINT ─────────────────────────────────────────── */
+        /* ── PRINT ────────────────────────────────────────────── */
         @media print {
             body { background: #fff; color: #111; }
-            .hero { background: #f8f9fa; border-bottom-color: #575ECF; }
-            .hero h1, .hero-company, .score-number { color: #111; }
-            .card, .rec, .analysis-text, .qw-card, .vp-callout {
+            .cover {
+                background: #f8f9fa;
+                border-bottom-color: #575ECF;
+                min-height: auto;
+                padding: 3rem 2rem;
+            }
+            .cover h1, .cover-company, .score-number { color: #111; }
+            .card, .callout-box, .vp-callout, .matrix-quadrant, .roadmap-col {
                 background: #f8f9fa;
                 border-color: #ddd;
                 -webkit-print-color-adjust: exact;
@@ -689,8 +837,10 @@
             }
             .section { border-color: #ddd; }
             .print-btn { display: none; }
+            .report-header { position: static; }
             [contenteditable="true"]:hover,
             [contenteditable="true"]:focus { box-shadow: none; }
+            .module-section, .section { page-break-inside: avoid; }
         }
     </style>
 </head>
@@ -698,14 +848,24 @@
 
 <button class="print-btn" onclick="window.print()">&#9998; Print / Save PDF</button>
 
-<!-- ════════════════════════════════════════════════════════ HERO -->
-<div class="hero">
+<!-- ════════════════════════════════════════════════════════ HEADER BAR -->
+<div class="report-header">
     {% if logo_base64 %}
-    <img src="data:image/png;base64,{{ logo_base64 }}" style="width: 200px; max-width: 60%; height: auto; margin-bottom: 1rem;" alt="Bhavsar Growth Consulting">
+    <img src="data:image/png;base64,{{ logo_base64 }}" class="report-header-logo" alt="{{ consultant_name }}">
+    {% else %}
+    <span style="font-size:0.8rem; font-weight:600; color:var(--text-mid);">{{ consultant_name }}</span>
     {% endif %}
-    <div class="hero-brand">Bhavsar Growth Consulting</div>
-    <h1>GTM Audit Report</h1>
-    <div class="hero-company">{{ company_name }}</div>
+    <span class="report-header-meta">{{ company_name }} &middot; {{ report.audit_date }}</span>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ COVER PAGE -->
+<div class="cover">
+    {% if logo_base64 %}
+    <img src="data:image/png;base64,{{ logo_base64 }}" style="width: 180px; max-width: 50%; height: auto; margin-bottom: 1.5rem; opacity: 0.9;" alt="{{ consultant_name }}">
+    {% endif %}
+    <div class="cover-type">GTM Diagnostic Audit</div>
+    <h1>{{ company_name }}</h1>
+    <div class="cover-subtitle">Where Your Pipeline Is Leaking and How to Fix It</div>
 
     <div class="score-ring">
         <div class="score-ring-fill"></div>
@@ -714,31 +874,87 @@
             <div class="score-label">GTM Score</div>
         </div>
     </div>
-
     <div>
         <span class="grade-badge" style="background: {{ overall_grade | grade_color }}; color: white;">
             Grade: {{ overall_grade }}
         </span>
     </div>
 
-    <div class="hero-meta">
-        <a href="{{ company_url }}">{{ company_url }}</a> &nbsp;&middot;&nbsp; {{ report.audit_date }} &nbsp;&middot;&nbsp; {{ report.audit_type | capitalize }} Audit
-    </div>
+    <div class="cover-date">{{ report.audit_date }}</div>
+    <div class="cover-firm">{{ consultant_name }}</div>
 </div>
 
 <div class="page">
 
+<!-- ════════════════════════════════════════════════════════ TABLE OF CONTENTS -->
+<div class="toc" id="toc">
+    <div class="section-label">Contents</div>
+    <div class="section-title">Table of Contents</div>
+    <ol class="toc-list">
+        <li><a href="#about">About This Audit</a></li>
+        <li><a href="#exec-summary">Executive Summary</a></li>
+        {% if strategic_diagnosis %}<li><a href="#diagnosis">Strategic Diagnosis</a></li>{% endif %}
+        <li><a href="#priority-matrix">Strategic Priority Matrix</a></li>
+        {% if company_profile %}<li><a href="#company-profile">Company Profile</a></li>{% endif %}
+        {% for module in modules %}
+        {% if module.agent_name in ['messaging', 'competitor', 'conversion'] and module.items %}
+        <li><a href="#module-{{ module.agent_name }}">{{ module.name }}</a></li>
+        {% endif %}
+        {% endfor %}
+        {% if buyer_journey_analysis %}<li><a href="#buyer-journey">Buyer Journey Analysis</a></li>{% endif %}
+        {% if revenue_impact_model %}<li><a href="#revenue-model">Revenue Impact Model</a></li>{% endif %}
+        {% if benchmarks %}<li><a href="#benchmarks">What Good Looks Like</a></li>{% endif %}
+        {% if recommendations %}<li><a href="#roadmap">30 / 60 / 90 Day Roadmap</a></li>{% endif %}
+        {% if recommendations %}<li><a href="#action-plan">Prioritized Action Plan</a></li>{% endif %}
+        {% if has_screenshots or annotated_screenshots %}<li><a href="#visual-evidence">Visual Evidence</a></li>{% endif %}
+        {% if talk_track or cmo_faq %}<li><a href="#readout">Readout Materials</a></li>{% endif %}
+    </ol>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ ABOUT THIS AUDIT -->
+<div class="section" id="about">
+    <div class="section-label">Methodology</div>
+    <div class="section-title">About This Audit</div>
+
+    <div class="card" style="padding: 1.5rem 1.75rem;">
+        <p style="font-size: 0.92rem; line-height: 1.7; margin-bottom: 1rem;">
+            This GTM Diagnostic Audit analyzed <strong>{{ company_name }}</strong>'s public-facing digital presence
+            across multiple dimensions: messaging &amp; positioning, competitive landscape, conversion optimization,
+            SEO &amp; organic visibility, visual design, and social proof. The analysis examined
+            the company's website, public content, competitive positioning, and buyer experience.
+        </p>
+        <p style="font-size: 0.92rem; line-height: 1.7; margin-bottom: 1rem;">
+            Each finding is tied to a specific business impact — pipeline generation, conversion rate,
+            competitive win rate, or buyer experience — rather than technical compliance metrics.
+            Recommendations are prioritized by expected revenue impact and implementation effort.
+        </p>
+        {% if consultant_name %}
+        <div style="border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem;">
+            <div style="font-weight: 600; font-size: 0.92rem; color: var(--text);">{{ consultant_name }}</div>
+            {% if consultant_bio %}
+            <div style="font-size: 0.85rem; color: var(--text-mid); margin-top: 0.3rem; line-height: 1.6;">{{ consultant_bio }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
 <!-- ════════════════════════════════════════════════════════ EXECUTIVE SUMMARY -->
-{% if strengths or critical_gaps or quick_wins %}
-<div class="section">
+<div class="section" id="exec-summary">
     <div class="section-label">Overview</div>
     <div class="section-title">Executive Summary</div>
+
+    {% if executive_narrative %}
+    <div class="card" style="padding: 1.5rem 1.75rem; border-left: 3px solid var(--accent); margin-bottom: 1.5rem;">
+        <div style="font-size: 0.95rem; line-height: 1.75; white-space: pre-line;" contenteditable="true">{{ executive_narrative }}</div>
+    </div>
+    {% endif %}
 
     {% if strengths or critical_gaps %}
     <div class="grid-2" style="margin-bottom: 1.25rem;">
         {% if strengths %}
-        <div class="card sw-card">
-            <div class="sw-title green">Top Strengths</div>
+        <div class="card" style="padding: 1rem 1.25rem;">
+            <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--green); margin-bottom:0.6rem;">Top Strengths</div>
             <ul class="pill-list strengths">
                 {% for s in strengths %}
                 <li contenteditable="true">{{ s }}</li>
@@ -747,8 +963,8 @@
         </div>
         {% endif %}
         {% if critical_gaps %}
-        <div class="card sw-card">
-            <div class="sw-title red">Critical Gaps</div>
+        <div class="card" style="padding: 1rem 1.25rem;">
+            <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--red); margin-bottom:0.6rem;">Critical Gaps</div>
             <ul class="pill-list gaps">
                 {% for g in critical_gaps %}
                 <li contenteditable="true">{{ g }}</li>
@@ -758,23 +974,86 @@
         {% endif %}
     </div>
     {% endif %}
+</div>
 
-    {% if quick_wins %}
-    <div class="section-label" style="margin-top:0.5rem;">Quick Wins</div>
-    {% for rec in quick_wins %}
-    <div class="qw-card">
-        <div class="qw-area">{{ rec.area }}</div>
-        <div class="qw-issue">{{ rec.issue }}</div>
-        <div class="qw-rec" contenteditable="true">{{ rec.recommendation }}</div>
+<!-- ════════════════════════════════════════════════════════ STRATEGIC DIAGNOSIS -->
+{% if strategic_diagnosis %}
+<div class="section" id="diagnosis">
+    <div class="section-label">Diagnosis</div>
+    <div class="section-title">Strategic Diagnosis</div>
+
+    <div class="card" style="padding: 1.5rem 1.75rem; border-left: 3px solid var(--accent);">
+        <div style="font-size: 0.95rem; line-height: 1.75; white-space: pre-line;" contenteditable="true">{{ strategic_diagnosis }}</div>
     </div>
-    {% endfor %}
-    {% endif %}
 </div>
 {% endif %}
 
+<!-- ════════════════════════════════════════════════════════ STRATEGIC PRIORITY MATRIX -->
+<div class="section" id="priority-matrix">
+    <div class="section-label">Prioritization</div>
+    <div class="section-title">Strategic Priority Matrix</div>
+    <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1rem;">
+        Recommendations mapped by expected revenue impact vs. implementation effort.
+    </p>
+
+    {% if recommendations %}
+    {% set high_impact_low = [] %}
+    {% set high_impact_high = [] %}
+    {% set low_impact_low = [] %}
+    {% set low_impact_high = [] %}
+    {% for rec in recommendations %}
+        {% if rec.impact.value == 'High' and rec.effort.value == 'Low' %}
+            {% if high_impact_low.append(rec) %}{% endif %}
+        {% elif rec.impact.value == 'High' and rec.effort.value != 'Low' %}
+            {% if high_impact_high.append(rec) %}{% endif %}
+        {% elif rec.impact.value != 'High' and rec.effort.value == 'Low' %}
+            {% if low_impact_low.append(rec) %}{% endif %}
+        {% else %}
+            {% if low_impact_high.append(rec) %}{% endif %}
+        {% endif %}
+    {% endfor %}
+
+    <div class="matrix-y-label">&#8593; Higher Impact</div>
+    <div class="priority-matrix">
+        <div class="matrix-quadrant">
+            <div class="matrix-quadrant-label q-quickwins">Quick Wins</div>
+            {% for rec in high_impact_low[:4] %}
+            <div class="matrix-item"><span class="dot" style="background:var(--green);"></span>{{ rec.issue }}</div>
+            {% endfor %}
+            {% if not high_impact_low %}<div class="matrix-item" style="color:var(--text-dim);">—</div>{% endif %}
+        </div>
+        <div class="matrix-quadrant">
+            <div class="matrix-quadrant-label q-strategic">Strategic Bets</div>
+            {% for rec in high_impact_high[:4] %}
+            <div class="matrix-item"><span class="dot" style="background:var(--accent);"></span>{{ rec.issue }}</div>
+            {% endfor %}
+            {% if not high_impact_high %}<div class="matrix-item" style="color:var(--text-dim);">—</div>{% endif %}
+        </div>
+        <div class="matrix-quadrant">
+            <div class="matrix-quadrant-label q-lowpri">Low Priority</div>
+            {% for rec in low_impact_low[:4] %}
+            <div class="matrix-item"><span class="dot" style="background:var(--text-dim);"></span>{{ rec.issue }}</div>
+            {% endfor %}
+            {% if not low_impact_low %}<div class="matrix-item" style="color:var(--text-dim);">—</div>{% endif %}
+        </div>
+        <div class="matrix-quadrant">
+            <div class="matrix-quadrant-label q-higheffort">High Effort</div>
+            {% for rec in low_impact_high[:4] %}
+            <div class="matrix-item"><span class="dot" style="background:var(--yellow);"></span>{{ rec.issue }}</div>
+            {% endfor %}
+            {% if not low_impact_high %}<div class="matrix-item" style="color:var(--text-dim);">—</div>{% endif %}
+        </div>
+    </div>
+    <div class="matrix-axis-labels">
+        <span>Lower Effort</span>
+        <span>Higher Effort &#8594;</span>
+    </div>
+    {% endif %}
+</div>
+
 <!-- ════════════════════════════════════════════════════════ COMPANY PROFILE -->
 {% if company_profile %}
-<div class="section">
+<div class="section" id="company-profile">
     <div class="section-label">Background</div>
     <div class="section-title">Company Profile</div>
 
@@ -824,318 +1103,428 @@
         </div>
     </div>
     {% endif %}
-
-    {% if company_profile.target_audience %}
-    <div style="margin-top:1rem;">
-        {% if company_profile.target_audience.industries %}
-        <div class="profile-item" style="margin-bottom:0.6rem;">
-            <label>Target Industries</label>
-            <div>
-                {% for ind in company_profile.target_audience.industries %}
-                <span class="tag">{{ ind }}</span>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        {% if company_profile.target_audience.roles %}
-        <div class="profile-item">
-            <label>Target Roles</label>
-            <div>
-                {% for role in company_profile.target_audience.roles %}
-                <span class="tag">{{ role }}</span>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-    </div>
-    {% endif %}
-
-    {% if company_profile.proof_points %}
-    <div style="margin-top:1rem;">
-        {% if company_profile.proof_points.metrics %}
-        <div class="profile-item" style="margin-bottom:0.6rem;">
-            <label>Key Metrics</label>
-            <div>
-                {% for m in company_profile.proof_points.metrics %}
-                <span class="tag">{{ m }}</span>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        {% if company_profile.proof_points.integrations %}
-        <div class="profile-item">
-            <label>Integrations</label>
-            <div>
-                {% for ig in company_profile.proof_points.integrations %}
-                <span class="tag">{{ ig }}</span>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-    </div>
-    {% endif %}
 </div>
 {% endif %}
 
-<!-- ════════════════════════════════════════════════════════ MODULE SECTIONS -->
+<!-- ════════════════════════════════════════════════════════ MODULE DEEP DIVES -->
 {% for module in modules %}
-{% if module.items %}
-<div class="section">
-    <div class="section-label">Module Analysis</div>
-    <div class="mod-header">
-        <h2>{{ module.name }}</h2>
-        <div class="mod-score-group">
-            <span class="mod-pct" style="color: {{ module.percentage | score_color }};">{{ "%.0f" | format(module.percentage) }}%</span>
-            <span class="grade-badge" style="background: {{ module.grade.value | grade_color }}; color: white; font-size:0.8rem; padding:0.2rem 0.7rem;">
-                {{ module.grade.value }}
-            </span>
+{% if module.agent_name in ['messaging', 'competitor', 'conversion'] and module.items %}
+<div class="module-section" id="module-{{ module.agent_name }}">
+    <div class="section-label">{{ module.name }}</div>
+    <div class="module-header-bar">
+        <div class="section-title" style="margin-bottom:0;">{{ module.name }}</div>
+        <div class="module-score-display">
+            <span class="module-score-num" style="color: {{ module.percentage | score_color }};">{{ "%.0f" | format(module.percentage) }}%</span>
+            <span class="badge-sm" style="background: {{ module.grade.value | grade_color }}; color: white; padding:0.2rem 0.6rem;">{{ module.grade.value }}</span>
         </div>
     </div>
 
-    <!-- Score Breakdown -->
-    {% if module.items | length > 1 %}
-    <div class="card" style="overflow-x:auto;">
-        <table class="score-table">
-            <thead>
-                <tr>
-                    <th>Criterion</th>
-                    <th style="width:100px;">Progress</th>
-                    <th style="width:55px;">Score</th>
-                    <th>Notes</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in module.items %}
-                <tr>
-                    <td class="criterion">{{ item.name }}</td>
-                    <td>
-                        <div class="bar-track">
-                            <div class="bar-fill" style="width:{{ item.percentage }}%; background:{{ item.percentage | score_color }};"></div>
-                        </div>
-                    </td>
-                    <td class="score-val" style="color:{{ item.percentage | score_color }};">{{ "%.0f" | format(item.percentage) }}</td>
-                    <td class="notes-col" contenteditable="true">{{ item.notes }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    {# ── Module Callout: The Single Most Important Thing ── #}
+    {% if module.callout %}
+    <div class="callout-box" style="margin-bottom: 1rem;">
+        <div class="callout-label">The Single Most Important Thing</div>
+        <div class="callout-text" contenteditable="true">{{ module.callout }}</div>
     </div>
     {% endif %}
 
-    <!-- Analysis -->
     {% if module.analysis_text %}
-    <div class="analysis-text" contenteditable="true">{{ module.analysis_text }}</div>
-    {% endif %}
-
-    <!-- Module-specific: Messaging -->
-    {% if module.extra_data.get('current_value_proposition') %}
-    <div class="vp-callout">
-        <div class="vp-label">Current Value Proposition</div>
-        <div class="vp-text" contenteditable="true">{{ module.extra_data.current_value_proposition }}</div>
-    </div>
-    {% endif %}
-    {% if module.extra_data.get('messaging_pillars') %}
-    <div style="margin-bottom:1rem;">
-        <div class="section-label">Messaging Pillars</div>
-        <div>
-            {% for pillar in module.extra_data.messaging_pillars %}
-            <span class="tag">{{ pillar }}</span>
-            {% endfor %}
-        </div>
+    <div class="card" style="margin-bottom: 1rem;">
+        <div style="font-size: 0.9rem; line-height: 1.65; white-space: pre-line;" contenteditable="true">{{ module.analysis_text }}</div>
     </div>
     {% endif %}
 
-    <!-- Module-specific: Competitors -->
-    {% if module.extra_data.get('competitors') %}
-    <div class="card" style="overflow-x:auto; margin-bottom:1rem;">
-        <div class="section-label" style="margin-bottom:0.6rem;">Competitive Landscape</div>
-        <table class="comp-table">
-            <thead>
-                <tr>
-                    <th>Competitor</th>
-                    <th>Positioning</th>
-                    <th>Overlap</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for comp in module.extra_data.competitors %}
-                <tr>
-                    <td>
-                        <div class="comp-name">{{ comp.name }}</div>
-                        {% if comp.url %}<div class="comp-url">{{ comp.url }}</div>{% endif %}
-                    </td>
-                    <td contenteditable="true">{{ comp.positioning }}</td>
-                    <td class="overlap-{{ comp.market_overlap | default('Medium') }}">
-                        {{ comp.market_overlap | default('Medium') }}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% endif %}
-
-    {% if module.extra_data.get('market_gaps') %}
-    <div style="margin-bottom:1rem;">
-        <div class="section-label">Market Gaps &amp; Opportunities</div>
-        <div class="card">
-            <ul class="sw-list">
-                {% for gap in module.extra_data.market_gaps %}
-                <li contenteditable="true">{{ gap }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-    {% endif %}
-
-    {% if module.extra_data.get('differentiation_opportunities') %}
-    <div style="margin-bottom:1rem;">
-        <div class="section-label">Differentiation Opportunities</div>
-        <div class="card">
-            <ul class="sw-list">
-                {% for d in module.extra_data.differentiation_opportunities %}
-                <li contenteditable="true">{{ d }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Strengths / Weaknesses -->
-    {% if module.strengths or module.weaknesses %}
-    <div class="grid-2">
-        {% if module.strengths %}
-        <div class="card sw-card">
-            <div class="sw-title green">Strengths</div>
-            <ul class="sw-list">
-                {% for s in module.strengths %}
-                <li contenteditable="true">{{ s }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-        {% endif %}
-        {% if module.weaknesses %}
-        <div class="card sw-card">
-            <div class="sw-title red">Areas for Improvement</div>
-            <ul class="sw-list">
-                {% for w in module.weaknesses %}
-                <li contenteditable="true">{{ w }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-        {% endif %}
-    </div>
-    {% endif %}
-
-    {# Visual Evidence — screenshots for this module #}
-    {% if has_screenshots and module.agent_name in module_screenshots %}
-    <div class="section-label" style="margin-top:1.25rem; margin-bottom:0.75rem;">Visual Evidence</div>
-    <div class="screenshot-grid">
-        {% for shot in module_screenshots[module.agent_name] %}
-        <div class="screenshot-card">
-            <img src="data:image/png;base64,{{ shot.base64 }}" alt="{{ shot.description }}" loading="lazy">
-            <div class="caption">{{ shot.description }}</div>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    {# Before/After comparisons for mockups (shown in messaging module) #}
-    {% if module.agent_name == 'messaging' and mockup_pairs %}
-    {% for pair in mockup_pairs %}
-    <div class="section-label" style="margin-top:1.25rem; margin-bottom:0.75rem;">Suggested Improvement: {{ pair.label }}</div>
-    <div class="comparison-block">
-        <div class="comparison-side">
-            <div class="comp-label-vis before">Current</div>
-            {% if pair.before_base64 %}
-            <img src="data:image/png;base64,{{ pair.before_base64 }}" alt="Current state" loading="lazy">
-            {% else %}
-            <div style="padding: 2rem; text-align: center; color: var(--text-dim);">Original screenshot not available</div>
-            {% endif %}
-        </div>
-        <div class="comparison-side">
-            <div class="comp-label-vis after">Suggested</div>
-            <img src="data:image/png;base64,{{ pair.after_base64 }}" alt="Suggested improvement" loading="lazy">
-        </div>
-    </div>
-    {% endfor %}
-    {% endif %}
-
-    <!-- Recommendations -->
-    {% if module.recommendations %}
-    <div class="section-label" style="margin-top:1.25rem; margin-bottom:0.75rem;">Recommendations</div>
-    {% for rec in module.recommendations %}
-    <div class="rec">
-        <div class="rec-top">
-            <div class="rec-issue">{{ rec.issue }}</div>
-            <div class="rec-badges">
-                <span class="badge-sm badge-impact-{{ rec.impact.value }}">{{ rec.impact.value }} Impact</span>
-                <span class="badge-sm badge-effort">{{ rec.effort.value }} Effort</span>
-                {% if rec.timeline %}
-                <span class="badge-sm badge-timeline">{{ rec.timeline }}</span>
+    {# ── MESSAGING: Clarity Scores + Homepage Teardown ── #}
+    {% if module.agent_name == 'messaging' %}
+        {% set clarity = module.extra_data.get('messaging_clarity_score', {}) %}
+        {% if clarity %}
+        <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin:1rem 0 0.5rem;">Messaging Clarity Test</div>
+        <div class="clarity-grid">
+            {% for key, label in [('what_you_do', 'What do you do?'), ('who_its_for', 'Who is it for?'), ('why_care', 'Why should I care?')] %}
+            {% set item = clarity.get(key, {}) %}
+            <div class="clarity-item">
+                <div class="clarity-score" style="color: {{ (item.get('score', 0) * 10) | score_color }};">{{ item.get('score', '?') }}</div>
+                <div class="clarity-max">/10</div>
+                <div class="clarity-question">{{ label }}</div>
+                {% if item.get('evidence') %}
+                <div style="font-size:0.75rem; color:var(--text-dim); margin-top:0.4rem; text-align:left;">{{ item.evidence[:150] }}</div>
                 {% endif %}
             </div>
-        </div>
-        <div class="rec-body" contenteditable="true">{{ rec.recommendation }}</div>
-
-        {% if rec.current_state or rec.best_practice %}
-        <div class="rec-context">
-            {% if rec.current_state %}
-            <div class="rec-ctx-box current">
-                <div class="rec-ctx-label current">Current State</div>
-                <div contenteditable="true">{{ rec.current_state }}</div>
-            </div>
-            {% endif %}
-            {% if rec.best_practice %}
-            <div class="rec-ctx-box best">
-                <div class="rec-ctx-label best">Best Practice</div>
-                <div contenteditable="true">{{ rec.best_practice }}</div>
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        {% if rec.implementation_steps %}
-        <div class="rec-steps">
-            <div class="rec-steps-label">Implementation Steps</div>
-            <ol>
-                {% for step in rec.implementation_steps %}
-                <li contenteditable="true">{{ step }}</li>
-                {% endfor %}
-            </ol>
-        </div>
-        {% endif %}
-
-        {% if rec.success_metrics %}
-        <div class="rec-metrics">
-            <strong>Success Metrics:</strong>
-            {% for m in rec.success_metrics %}
-            <span class="tag">{{ m }}</span>
             {% endfor %}
+        </div>
+        {% endif %}
+
+        {% set teardown = module.extra_data.get('homepage_teardown', {}) %}
+        {% if teardown %}
+        <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin:1.5rem 0 0.5rem;">Homepage Messaging Teardown</div>
+        {% if teardown.get('h1_text') %}
+        <div class="vp-callout" style="margin-bottom:0.75rem;">
+            <div class="vp-label">Current H1</div>
+            <div class="vp-text">"{{ teardown.h1_text }}"</div>
+        </div>
+        {% if teardown.get('h1_assessment') %}
+        <div class="card" style="font-size:0.88rem;">{{ teardown.h1_assessment }}</div>
+        {% endif %}
+        {% endif %}
+        {% if teardown.get('suggested_h1') %}
+        <div class="ba-grid">
+            <div class="ba-card before">
+                <div class="ba-label before">Current H1</div>
+                {{ teardown.get('h1_text', 'N/A') }}
+            </div>
+            <div class="ba-card after">
+                <div class="ba-label after">Suggested H1</div>
+                {{ teardown.suggested_h1 }}
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        {% set collisions = module.extra_data.get('message_collisions', []) %}
+        {% if collisions %}
+        <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin:1.5rem 0 0.5rem;">Message Collisions</div>
+        {% for col in collisions[:3] %}
+        <div class="card" style="margin-bottom:0.5rem;">
+            <div class="grid-2" style="margin-bottom:0.5rem;">
+                <div style="font-size:0.85rem;"><strong style="color:var(--red);">Message A:</strong> "{{ col.get('message_a', '') }}"</div>
+                <div style="font-size:0.85rem;"><strong style="color:var(--yellow);">Message B:</strong> "{{ col.get('message_b', '') }}"</div>
+            </div>
+            <div style="font-size:0.82rem; color:var(--text-mid);">{{ col.get('conflict', '') }}</div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    {% endif %}
+
+    {# ── COMPETITOR: Win/Loss Analysis + Table ── #}
+    {% if module.agent_name == 'competitor' %}
+        {% set competitors = module.extra_data.get('competitors', []) %}
+        {% if competitors %}
+        <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin:1rem 0 0.5rem;">Competitive Landscape</div>
+        <div class="card" style="overflow-x:auto; padding:0.75rem;">
+            <table class="comp-table">
+                <thead>
+                    <tr>
+                        <th>Competitor</th>
+                        <th>Positioning</th>
+                        <th>Overlap</th>
+                        <th>Threat</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for comp in competitors[:6] %}
+                    <tr>
+                        <td style="font-weight:600;">{{ comp.get('name', 'Unknown') }}<br><span style="font-size:0.75rem; color:var(--text-dim);">{{ comp.get('url', '') }}</span></td>
+                        <td style="font-size:0.82rem;">{{ comp.get('positioning', '')[:120] }}</td>
+                        <td class="overlap-{{ comp.get('market_overlap', 'Medium') | lower }}">{{ comp.get('market_overlap', '?') }}</td>
+                        <td class="overlap-{{ comp.get('threat_level', 'Medium') | lower }}">{{ comp.get('threat_level', '?') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# Per-competitor win/loss cards #}
+        {% for comp in competitors[:4] %}
+        {% if comp.get('where_winning') or comp.get('where_losing') or comp.get('what_to_do') %}
+        <div class="card" style="margin-top: 0.75rem; padding: 1rem 1.25rem;">
+            <div style="font-weight: 600; font-size: 0.92rem; margin-bottom: 0.5rem;">{{ comp.get('name', 'Unknown') }}</div>
+            {% if comp.get('where_winning') %}
+            <div style="font-size: 0.85rem; margin-bottom: 0.4rem;"><span style="color:var(--green); font-weight:600;">Winning:</span> {{ comp.where_winning }}</div>
+            {% endif %}
+            {% if comp.get('where_losing') %}
+            <div style="font-size: 0.85rem; margin-bottom: 0.4rem;"><span style="color:var(--red); font-weight:600;">Losing:</span> {{ comp.where_losing }}</div>
+            {% endif %}
+            {% if comp.get('what_to_do') %}
+            <div style="font-size: 0.85rem; color: var(--text-mid);"><span style="color:var(--accent); font-weight:600;">Action:</span> {{ comp.what_to_do }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+
+        {% set gaps = module.extra_data.get('market_gaps', []) %}
+        {% set diff_opps = module.extra_data.get('differentiation_opportunities', []) %}
+        {% if gaps or diff_opps %}
+        <div class="grid-2" style="margin-top:1rem;">
+            {% if gaps %}
+            <div class="card" style="padding:1rem 1.25rem;">
+                <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--green); margin-bottom:0.5rem;">Market Gaps</div>
+                {% for gap in gaps[:4] %}
+                <div style="padding:0.3rem 0; border-bottom:1px solid var(--border); font-size:0.85rem;">{{ gap }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% if diff_opps %}
+            <div class="card" style="padding:1rem 1.25rem;">
+                <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin-bottom:0.5rem;">Differentiation Opportunities</div>
+                {% for opp in diff_opps[:4] %}
+                <div style="padding:0.3rem 0; border-bottom:1px solid var(--border); font-size:0.85rem;">{{ opp }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    {% endif %}
+
+    {# ── CONVERSION: Buyer Journey + Demo Teardown ── #}
+    {% if module.agent_name == 'conversion' %}
+        {% set journey = module.extra_data.get('buyer_journey', {}) %}
+        {% if journey %}
+        <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin:1rem 0 0.5rem;">Buyer Journey</div>
+        {% if journey.get('primary_path') %}
+        <div class="card" style="padding:1rem 1.25rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+                {% for step in journey.primary_path %}
+                <span style="background:var(--accent-glow); border:1px solid var(--accent); border-radius:4px; padding:0.3rem 0.75rem; font-size:0.82rem; font-weight:600;">{{ step }}</span>
+                {% if not loop.last %}<span style="color:var(--text-dim);">&#8594;</span>{% endif %}
+                {% endfor %}
+            </div>
+            {% if journey.get('clicks_to_conversion') %}
+            <div style="font-size:0.85rem; color:var(--text-mid);"><strong>{{ journey.clicks_to_conversion }}</strong> clicks from homepage to conversion</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if journey.get('friction_points') %}
+        <div class="card" style="padding:1rem 1.25rem; border-left:3px solid var(--red);">
+            <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--red); margin-bottom:0.5rem;">Friction Points</div>
+            {% for fp in journey.friction_points[:5] %}
+            <div style="padding:0.3rem 0; border-bottom:1px solid var(--border); font-size:0.85rem;">{{ fp }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endif %}
+
+        {% set demo = module.extra_data.get('demo_page_teardown', {}) %}
+        {% if demo and demo.get('page_url') %}
+        <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin:1.5rem 0 0.5rem;">Demo/Contact Page Teardown</div>
+        <div class="card">
+            <div class="profile-grid" style="margin-bottom:0.75rem;">
+                <div class="profile-item">
+                    <label>Form Fields</label>
+                    <div class="val">{{ demo.get('form_fields_count', '?') }} fields</div>
+                </div>
+                <div class="profile-item">
+                    <label>CTA Text</label>
+                    <div class="val">"{{ demo.get('cta_text', 'N/A') }}"</div>
+                </div>
+                <div class="profile-item">
+                    <label>Social Proof Near Form</label>
+                    <div class="val">{% if demo.get('has_social_proof_near_form') %}<span style="color:var(--green);">Yes</span>{% else %}<span style="color:var(--red);">No</span>{% endif %}</div>
+                </div>
+                <div class="profile-item">
+                    <label>Value Framing</label>
+                    <div class="val">{% if demo.get('has_value_framing') %}<span style="color:var(--green);">Yes</span>{% else %}<span style="color:var(--red);">No</span>{% endif %}</div>
+                </div>
+            </div>
+            {% if demo.get('assessment') %}
+            <div style="font-size:0.85rem; color:var(--text-mid);">{{ demo.assessment }}</div>
+            {% endif %}
+            {% if demo.get('suggested_cta') %}
+            <div class="ba-grid" style="margin-top:0.75rem;">
+                <div class="ba-card before">
+                    <div class="ba-label before">Current CTA</div>
+                    "{{ demo.get('cta_text', 'N/A') }}"
+                </div>
+                <div class="ba-card after">
+                    <div class="ba-label after">Suggested CTA</div>
+                    "{{ demo.suggested_cta }}"
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    {% endif %}
+
+    {# ── MODULE RECOMMENDATIONS ── #}
+    {% if module.recommendations %}
+    <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin:1.5rem 0 0.5rem;">Key Recommendations</div>
+    {% for rec in module.recommendations[:5] %}
+    <div class="callout-box" style="border-left-color: {{ rec.impact.value | grade_color if rec.impact.value.startswith('A') or rec.impact.value.startswith('B') else 'var(--accent)' }}; margin-bottom:0.6rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-weight:600; font-size:0.92rem;">{{ rec.issue }}</div>
+            <div class="rec-badges">
+                <span class="badge-sm badge-impact-{{ rec.impact.value }}">{{ rec.impact.value }}</span>
+                <span class="badge-sm badge-effort">{{ rec.effort.value }}</span>
+                {% if rec.owner %}<span class="badge-owner">{{ rec.owner }}</span>{% endif %}
+            </div>
+        </div>
+        <div style="font-size:0.85rem; color:var(--text-mid); margin-top:0.3rem;" contenteditable="true">{{ rec.recommendation }}</div>
+        {% if rec.strategic_rationale %}
+        <div style="margin-top: 0.3rem; font-size: 0.82rem; color: var(--accent-light); font-style: italic;">{{ rec.strategic_rationale }}</div>
+        {% endif %}
+        {% if rec.business_impact %}
+        <div style="margin-top: 0.3rem; font-size: 0.82rem; color: var(--yellow); font-style: italic;">{{ rec.business_impact }}</div>
+        {% endif %}
+        {% if rec.before_example and rec.after_example %}
+        <div class="ba-grid" style="margin-top:0.5rem;">
+            <div class="ba-card before">
+                <div class="ba-label before">Current</div>
+                {{ rec.before_example }}
+            </div>
+            <div class="ba-card after">
+                <div class="ba-label after">Suggested</div>
+                {{ rec.after_example }}
+            </div>
         </div>
         {% endif %}
     </div>
     {% endfor %}
     {% endif %}
-
 </div>
 {% endif %}
 {% endfor %}
 
-<!-- Company Profile module (non-scored — analysis text only) -->
-{% for module in modules %}
-{% if not module.items and module.analysis_text %}
-<div class="section">
-    <div class="section-label">Research</div>
-    <div class="section-title">{{ module.name }}</div>
-    <div class="analysis-text" contenteditable="true">{{ module.analysis_text }}</div>
+<!-- ════════════════════════════════════════════════════════ BUYER JOURNEY ANALYSIS -->
+{% if buyer_journey_analysis %}
+<div class="section" id="buyer-journey">
+    <div class="section-label">Buyer Experience</div>
+    <div class="section-title">Buyer Journey Analysis</div>
+
+    <div class="card" style="padding: 1.5rem 1.75rem; border-left: 3px solid var(--accent);">
+        <div style="font-size: 0.92rem; line-height: 1.75; white-space: pre-line;" contenteditable="true">{{ buyer_journey_analysis }}</div>
+    </div>
 </div>
 {% endif %}
-{% endfor %}
+
+<!-- ════════════════════════════════════════════════════════ REVENUE IMPACT MODEL -->
+{% if revenue_impact_model %}
+<div class="section" id="revenue-model">
+    <div class="section-label">Financial Impact</div>
+    <div class="section-title">Revenue Impact Model</div>
+    <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1rem;">
+        Projected outcomes based on implementing audit recommendations. All figures are estimates based on stated assumptions.
+    </p>
+
+    <div class="card" style="overflow-x:auto; padding: 0.75rem 1.25rem;">
+        <table class="rev-table">
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Current Baseline</th>
+                    <th>Conservative (50%)</th>
+                    <th>Aggressive (100%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in revenue_impact_model.get('rows', []) %}
+                <tr>
+                    <td class="metric-name">{{ row.get('metric', '') }}</td>
+                    <td class="baseline">{{ row.get('baseline', '—') }}</td>
+                    <td class="conservative">{{ row.get('conservative', '—') }}</td>
+                    <td class="aggressive">{{ row.get('aggressive', '—') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if revenue_impact_model.get('total') %}
+            <tfoot>
+                <tr>
+                    <td>Pipeline Value</td>
+                    <td class="baseline">{{ revenue_impact_model.total.get('baseline', '—') }}</td>
+                    <td class="conservative">{{ revenue_impact_model.total.get('conservative', '—') }}</td>
+                    <td class="aggressive">{{ revenue_impact_model.total.get('aggressive', '—') }}</td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+
+    {% if revenue_impact_model.get('assumptions') %}
+    <div style="font-size: 0.78rem; color: var(--text-dim); margin-top: 0.75rem; line-height: 1.5;">
+        <strong>Assumptions:</strong> {{ revenue_impact_model.assumptions }}
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- ════════════════════════════════════════════════════════ WHAT GOOD LOOKS LIKE -->
+{% if benchmarks %}
+<div class="section" id="benchmarks">
+    <div class="section-label">Benchmarks</div>
+    <div class="section-title">What Good Looks Like</div>
+    <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1rem;">
+        Companies executing well in each area — context for what's achievable.
+    </p>
+
+    {% for bm in benchmarks[:6] %}
+    <div class="card" style="margin-bottom: 0.6rem; padding: 1rem 1.25rem;">
+        <div style="display: flex; gap: 1rem; align-items: flex-start;">
+            <div style="flex: 1;">
+                <div style="font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.2rem;">{{ bm.get('category', '') }}</div>
+                <div style="font-weight: 600; font-size: 0.92rem;">{{ bm.get('company', '') }}</div>
+                <div style="font-size: 0.85rem; color: var(--text-mid); margin-top: 0.25rem; line-height: 1.5;">{{ bm.get('description', '') }}</div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- ════════════════════════════════════════════════════════ 30/60/90 ROADMAP -->
+{% if recommendations %}
+<div class="section" id="roadmap">
+    <div class="section-label">Implementation</div>
+    <div class="section-title">30 / 60 / 90 Day Roadmap</div>
+
+    {% set quick_recs = [] %}
+    {% set strategic_recs = [] %}
+    {% set longterm_recs = [] %}
+    {% for rec in recommendations %}
+        {% if rec.effort.value == 'Low' %}
+            {% if quick_recs.append(rec) %}{% endif %}
+        {% elif rec.effort.value == 'Medium' %}
+            {% if strategic_recs.append(rec) %}{% endif %}
+        {% else %}
+            {% if longterm_recs.append(rec) %}{% endif %}
+        {% endif %}
+    {% endfor %}
+
+    <div class="roadmap-grid">
+        <div class="roadmap-col">
+            <div class="roadmap-header" style="color:var(--green);">30 Days: No-Excuse Fixes</div>
+            {% for rec in quick_recs[:5] %}
+            <div class="roadmap-item">
+                <span class="badge-sm badge-impact-{{ rec.impact.value }}" style="margin-right:0.3rem;">{{ rec.impact.value }}</span>
+                {{ rec.issue }}
+                {% if rec.strategic_rationale %}
+                <div class="roadmap-rationale">{{ rec.strategic_rationale }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% if not quick_recs %}<div class="roadmap-item" style="color:var(--text-dim);">No quick fixes identified</div>{% endif %}
+        </div>
+        <div class="roadmap-col">
+            <div class="roadmap-header" style="color:var(--yellow);">60 Days: High-Leverage Investments</div>
+            {% for rec in strategic_recs[:5] %}
+            <div class="roadmap-item">
+                <span class="badge-sm badge-impact-{{ rec.impact.value }}" style="margin-right:0.3rem;">{{ rec.impact.value }}</span>
+                {{ rec.issue }}
+                {% if rec.strategic_rationale %}
+                <div class="roadmap-rationale">{{ rec.strategic_rationale }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% if not strategic_recs %}<div class="roadmap-item" style="color:var(--text-dim);">No medium-term investments identified</div>{% endif %}
+        </div>
+        <div class="roadmap-col">
+            <div class="roadmap-header" style="color:var(--blue);">90 Days: Pipeline Multipliers</div>
+            {% for rec in longterm_recs[:5] %}
+            <div class="roadmap-item">
+                <span class="badge-sm badge-impact-{{ rec.impact.value }}" style="margin-right:0.3rem;">{{ rec.impact.value }}</span>
+                {{ rec.issue }}
+                {% if rec.strategic_rationale %}
+                <div class="roadmap-rationale">{{ rec.strategic_rationale }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% if not longterm_recs %}<div class="roadmap-item" style="color:var(--text-dim);">No long-term initiatives identified</div>{% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- ════════════════════════════════════════════════════════ ACTION PLAN -->
 {% if recommendations %}
-<div class="section">
+<div class="section" id="action-plan">
     <div class="section-label">Prioritized</div>
     <div class="section-title">Action Plan</div>
     <p style="color: var(--text-dim); font-size: 0.88rem; margin-bottom: 1.25rem;">
@@ -1149,6 +1538,25 @@
             <div class="action-area">{{ rec.area }}</div>
             <div class="action-issue">{{ rec.issue }}</div>
             <div class="action-rec" contenteditable="true">{{ rec.recommendation }}</div>
+            {% if rec.strategic_rationale %}
+            <div style="margin-top:0.25rem; font-size:0.82rem; color:var(--accent-light); font-style:italic;">{{ rec.strategic_rationale }}</div>
+            {% endif %}
+            {% if rec.business_impact %}
+            <div style="margin-top:0.25rem; font-size:0.8rem; color:var(--yellow); font-style:italic;">{{ rec.business_impact }}</div>
+            {% endif %}
+            <div class="action-meta">
+                {% if rec.owner %}<span class="badge-owner">{{ rec.owner }}</span>{% endif %}
+                {% if rec.effort_estimate %}<span class="badge-sm badge-effort">{{ rec.effort_estimate }}</span>{% endif %}
+                {% if rec.dependencies %}
+                <span style="font-size:0.72rem; color:var(--text-dim);">Requires: {{ rec.dependencies | join(', ') }}</span>
+                {% endif %}
+            </div>
+            {% if rec.before_example and rec.after_example %}
+            <div class="ba-grid" style="margin-top:0.4rem;">
+                <div class="ba-card before"><div class="ba-label before">Current</div>{{ rec.before_example }}</div>
+                <div class="ba-card after"><div class="ba-label after">Suggested</div>{{ rec.after_example }}</div>
+            </div>
+            {% endif %}
         </div>
         <div class="rec-badges" style="padding-top:0.15rem;">
             <span class="badge-sm badge-impact-{{ rec.impact.value }}">{{ rec.impact.value }}</span>
@@ -1159,10 +1567,134 @@
 </div>
 {% endif %}
 
+<!-- ════════════════════════════════════════════════════════ VISUAL EVIDENCE -->
+{% if has_screenshots or annotated_screenshots %}
+<div class="section" id="visual-evidence">
+    <div class="section-label">Visual Analysis</div>
+    <div class="section-title">Visual Evidence</div>
+
+    {# Annotated screenshots first #}
+    {% if annotated_screenshots %}
+    <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin:0 0 0.75rem;">Annotated Analysis</div>
+    {% for ann in annotated_screenshots %}
+    <div class="screenshot-card" style="margin-bottom: 1rem;">
+        <img src="data:image/png;base64,{{ ann.base64 }}" alt="{{ ann.get('description', 'Annotated screenshot') }}" loading="lazy">
+        {% if ann.get('description') %}
+        <div class="caption">{{ ann.description }}</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {# Regular screenshots #}
+    {% if has_screenshots %}
+    {% set all_shots = [] %}
+    {% for agent_name, shots in module_screenshots.items() %}
+    {% for shot in shots %}
+    {% if all_shots.append(shot) %}{% endif %}
+    {% endfor %}
+    {% endfor %}
+    {% if all_shots %}
+    <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin:1rem 0 0.75rem;">Website Screenshots</div>
+    <div class="screenshot-grid">
+        {% for shot in all_shots[:6] %}
+        <div class="screenshot-card">
+            <img src="data:image/png;base64,{{ shot.base64 }}" alt="{{ shot.description }}" loading="lazy">
+            <div class="caption">{{ shot.description }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Before/after mockup comparisons #}
+    {% if mockup_pairs %}
+    <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin:1.5rem 0 0.75rem;">Before &amp; After</div>
+    {% for pair in mockup_pairs %}
+    <p style="font-size:0.88rem; color:var(--text-mid); margin-bottom:0.75rem;">{{ pair.label }}</p>
+    <div class="comparison-block">
+        <div class="comparison-side">
+            <div class="comp-label-vis before">{{ pair.before_label }}</div>
+            {% if pair.before_base64 %}
+            <img src="data:image/png;base64,{{ pair.before_base64 }}" alt="Current state" loading="lazy">
+            {% else %}
+            <div style="padding: 2rem; text-align: center; color: var(--text-dim);">Original screenshot not available</div>
+            {% endif %}
+        </div>
+        <div class="comparison-side">
+            <div class="comp-label-vis after">{{ pair.after_label }}</div>
+            <img src="data:image/png;base64,{{ pair.after_base64 }}" alt="Suggested improvement" loading="lazy">
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- ════════════════════════════════════════════════════════ READOUT MATERIALS -->
+{% if talk_track or cmo_faq or next_steps %}
+<div class="section" id="readout">
+    <div class="section-label">Appendix</div>
+    <div class="section-title">Readout Materials</div>
+
+    {# Talk Track #}
+    {% if talk_track %}
+    <div class="section-subtitle">Talk Track</div>
+    <div class="card" style="padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;">
+        <p style="font-size: 0.82rem; color: var(--text-dim); margin-bottom: 0.75rem;">Key points for presenting this audit verbally.</p>
+        <ol class="talk-track-list">
+            {% for bullet in talk_track %}
+            <li contenteditable="true">{{ bullet }}</li>
+            {% endfor %}
+        </ol>
+    </div>
+    {% endif %}
+
+    {# CMO FAQ #}
+    {% if cmo_faq %}
+    <div class="section-subtitle">Anticipated Questions</div>
+    <div class="card" style="padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;">
+        {% for faq in cmo_faq %}
+        <div class="faq-item">
+            <div class="faq-q">{{ faq.get('question', '') }}</div>
+            <div class="faq-a" contenteditable="true">{{ faq.get('answer', '') }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Next Steps #}
+    {% if next_steps %}
+    <div class="section-subtitle">Next Steps: 30-Day Sprint</div>
+    <div class="card" style="padding: 1.25rem 1.5rem;">
+        {% if next_steps.get('summary') %}
+        <p style="font-size: 0.92rem; line-height: 1.65; margin-bottom: 1rem;" contenteditable="true">{{ next_steps.summary }}</p>
+        {% endif %}
+        {% if next_steps.get('steps') %}
+        {% for step in next_steps.steps %}
+        <div style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+            <div style="font-weight: 800; color: var(--accent); min-width: 20px;">{{ loop.index }}</div>
+            <div>
+                <div style="font-weight: 600; font-size: 0.92rem;">{{ step.get('title', '') }}</div>
+                {% if step.get('detail') %}
+                <div style="font-size: 0.85rem; color: var(--text-mid);">{{ step.detail }}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
 <!-- ════════════════════════════════════════════════════════ FOOTER -->
 <div class="footer">
-    <div class="footer-brand">Bhavsar Growth Consulting</div>
-    GTM Audit Platform &nbsp;&middot;&nbsp; {{ report.audit_date }}
+    {% if logo_base64 %}
+    <img src="data:image/png;base64,{{ logo_base64 }}" style="width: 120px; height: auto; margin-bottom: 0.75rem; opacity: 0.7;" alt="{{ consultant_name }}">
+    {% endif %}
+    <div class="footer-brand">{{ consultant_name }}</div>
+    {{ company_name }} &middot; {{ report.audit_date }}
 </div>
 
 </div>

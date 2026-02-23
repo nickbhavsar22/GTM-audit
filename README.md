@@ -11,7 +11,7 @@ Built by [Bhavsar Growth Consulting](https://www.bhavsargrowth.com).
 | Frontend | Streamlit | Interactive UI (submit audits, view reports) |
 | Backend | FastAPI | REST API + WebSocket for real-time progress |
 | Database | SQLite (dev) / PostgreSQL (prod) | Audit state, agent results, reports |
-| Agents | 11 specialist agents + orchestrator | Parallel analysis via Claude API |
+| Agents | 12 specialist agents + orchestrator | Parallel analysis via Claude API |
 | Reports | Jinja2 HTML + Markdown | Branded, downloadable audit reports |
 
 ## Quick Start
@@ -19,6 +19,7 @@ Built by [Bhavsar Growth Consulting](https://www.bhavsargrowth.com).
 ### Prerequisites
 
 - Python 3.11+
+- Node.js 18+ (for Playwright browser automation)
 - An [Anthropic API key](https://console.anthropic.com/)
 
 ### Local Development
@@ -30,6 +31,7 @@ cd GTM-audit
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
+playwright install chromium
 
 # Configure environment
 cp .env.example .env
@@ -71,7 +73,7 @@ The UI will be available at `http://localhost:8501` and the API at `http://local
 
 ```
 GTM-audit/
-├── agents/              # 11 specialist agents + orchestrator
+├── agents/              # 12 specialist agents + orchestrator
 │   ├── data_providers/  # Mock data providers (SEMrush, Crunchbase, G2)
 │   ├── base_agent.py    # Abstract base class for agents
 │   ├── orchestrator.py  # Coordinates agent execution
@@ -83,6 +85,7 @@ GTM-audit/
 │   ├── services/        # Business logic (audit, report)
 │   └── main.py          # FastAPI app factory
 ├── config/              # Settings, constants, logging
+├── tools/               # CLI utilities (version bumping)
 ├── frontend/
 │   ├── components/      # Streamlit UI components
 │   ├── pages/           # Multi-page app pages
@@ -90,6 +93,7 @@ GTM-audit/
 │   └── streamlit_app.py # Streamlit entry point
 ├── reports/
 │   ├── templates/       # Jinja2 HTML templates
+│   ├── fonts/           # Embedded Lato web fonts
 │   ├── renderer.py      # HTML report renderer
 │   └── scoring.py       # Scoring engine
 └── tests/               # Pytest test suite

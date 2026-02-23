@@ -1,22 +1,24 @@
 """Mockup generator — creates styled HTML mockups for before/after comparisons."""
 
+import asyncio
+import base64
 import logging
+import tempfile
 import time
+from pathlib import Path
 from typing import Optional
 
 from agents.context_store import ContextStore, ScreenshotData
-from agents.mcp_browser_client import MCPBrowserClient
 
 logger = logging.getLogger(__name__)
 
 
 class MockupGenerator:
     """Generates HTML mockups that mimic the original page style,
-    then screenshots them for before/after report comparisons."""
+    then screenshots them via Playwright for before/after report comparisons."""
 
-    def __init__(self, context: ContextStore, browser: Optional[MCPBrowserClient] = None):
+    def __init__(self, context: ContextStore):
         self.context = context
-        self.browser = browser
 
     def generate_headline_mockup_html(
         self,
@@ -169,15 +171,32 @@ class MockupGenerator:
         mockup_name: str,
         recommendation_ref: str,
     ) -> Optional[ScreenshotData]:
-        """Write HTML mockup, screenshot it, return ScreenshotData."""
-        if not self.browser:
-            logger.warning("No browser client available for mockup screenshots")
-            return None
-
+        """Write HTML mockup to temp file, screenshot it with Playwright, return ScreenshotData."""
         try:
-            file_path, b64 = await self.browser.screenshot_mockup_html(
-                html_content, f"{mockup_name}.html"
-            )
+            from playwright.async_api import async_playwright
+
+            # Write HTML to temp file
+            tmp_dir = Path(tempfile.gettempdir()) / "gtm_mockups"
+            tmp_dir.mkdir(exist_ok=True)
+            html_path = tmp_dir / f"{mockup_name}.html"
+            html_path.write_text(html_content, encoding="utf-8")
+            file_url = html_path.as_uri()
+
+            async with async_playwright() as p:
+                browser = await asyncio.wait_for(
+                    p.chromium.launch(headless=True), timeout=30
+                )
+                try:
+                    page = await browser.new_page(
+                        viewport={"width": 1200, "height": 630}
+                    )
+                    await page.goto(file_url, wait_until="domcontentloaded")
+                    await page.wait_for_timeout(500)
+
+                    screenshot_bytes = await page.screenshot(type="png")
+                    b64 = base64.b64encode(screenshot_bytes).decode("utf-8")
+                finally:
+                    await browser.close()
 
             if not b64:
                 return None
@@ -185,7 +204,7 @@ class MockupGenerator:
             screenshot = ScreenshotData(
                 url=f"mockup://{mockup_name}",
                 screenshot_type="mockup",
-                file_path=file_path,
+                file_path=str(html_path),
                 base64_data=b64,
                 description=f"Mockup: {recommendation_ref}",
                 mockup_for=recommendation_ref,
@@ -193,6 +212,7 @@ class MockupGenerator:
             )
             await self.context.set_screenshot(screenshot)
             return screenshot
+
         except Exception as e:
             logger.warning(f"Mockup screenshot failed for {mockup_name}: {e}")
             return None

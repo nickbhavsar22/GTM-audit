@@ -3,6 +3,7 @@
 import asyncio
 from dataclasses import dataclass, field
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 
 @dataclass
@@ -28,6 +29,11 @@ class PageData:
     testimonials: list[str] = field(default_factory=list)
     has_schema: bool = False
     schema_types: list[str] = field(default_factory=list)
+    og_site_name: str = ""
+    tech_stack: list[str] = field(default_factory=list)
+    word_count: int = 0
+    publish_date: str = ""
+    content_type: str = ""  # blog_post, case_study, whitepaper, webinar, landing_page
 
 
 @dataclass
@@ -71,8 +77,36 @@ class ContextStore:
     # Competitors (populated by Competitor Agent)
     competitors: list[dict] = field(default_factory=list)
 
+    # Diagnostic notes (e.g., screenshot failures)
+    screenshot_diagnostic: str = ""
+
     # Lock for thread-safe writes
     _lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)
+
+    def __post_init__(self) -> None:
+        """Set a domain-based company name as initial default if none provided."""
+        if not self.company_name and self.company_url:
+            self.company_name = self.name_from_domain(self.company_url)
+
+    @staticmethod
+    def name_from_domain(url: str) -> str:
+        """Extract a plausible company name from the domain.
+
+        Examples: 'https://surgeone.ai' -> 'Surgeone', 'https://acme-corp.com' -> 'Acme Corp'
+        """
+        try:
+            hostname = urlparse(url).netloc
+            if hostname.startswith("www."):
+                hostname = hostname[4:]
+            # Remove TLD
+            name_part = hostname.rsplit(".", 1)[0] if "." in hostname else hostname
+            # Handle sub-domains: take last part
+            if "." in name_part:
+                name_part = name_part.rsplit(".", 1)[-1]
+            # Replace hyphens with spaces and title-case
+            return name_part.replace("-", " ").title()
+        except Exception:
+            return ""
 
     async def set_page(self, page: PageData) -> None:
         async with self._lock:
@@ -82,6 +116,12 @@ class ContextStore:
         async with self._lock:
             key = f"{screenshot.url}::{screenshot.screenshot_type}"
             self.screenshots[key] = screenshot
+
+    async def set_company_name(self, name: str) -> None:
+        """Thread-safe setter for company_name. Only updates if name is non-empty."""
+        if name and name.strip():
+            async with self._lock:
+                self.company_name = name.strip()
 
     async def set_analysis(self, agent_name: str, analysis: Any) -> None:
         async with self._lock:

@@ -1,0 +1,43 @@
+name: Manual Version Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: true
+        default: 'minor'
+        type: choice
+        options:
+          - minor
+          - major
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: bump
+        run: |
+          python tools/bump_version.py ${{ inputs.bump_type }}
+          echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Commit, tag, and push
+        run: |
+          git add VERSION
+          git commit -m "release: v${{ steps.bump.outputs.version }} [skip bump]"
+          git tag "v${{ steps.bump.outputs.version }}"
+          git push origin main --tags

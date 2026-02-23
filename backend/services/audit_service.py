@@ -141,10 +141,21 @@ class AuditService:
                 audit.pages_crawled = len(context.pages)
                 audit.screenshots_count = len(context.screenshots)
             else:
-                audit.status = AuditStatus.FAILED
-                audit.error_message = (
-                    "Audit agents completed but report was not saved to database"
+                # Surface the real error from the report agent
+                report_agent_result = (
+                    db.query(AgentResult)
+                    .filter(
+                        AgentResult.audit_id == audit_id,
+                        AgentResult.agent_name == "report",
+                    )
+                    .first()
                 )
+                real_error = ""
+                if report_agent_result and report_agent_result.error_message:
+                    real_error = f": {report_agent_result.error_message}"
+
+                audit.status = AuditStatus.FAILED
+                audit.error_message = f"Report generation failed{real_error}"
             db.commit()
 
             logger.info(f"Audit {audit_id} completed successfully")

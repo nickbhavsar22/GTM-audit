@@ -17,7 +17,7 @@ init_db()
 
 st.set_page_config(
     page_title="GTM Audit Platform",
-    page_icon=":material/analytics:",
+    page_icon="\U0001f4ca",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -40,9 +40,6 @@ with st.sidebar:
         st.image(str(_logo_path), width=200)
     else:
         st.markdown("### Bhavsar Growth Consulting")
-    _version_file = Path(__file__).resolve().parent.parent / "VERSION"
-    _version = _version_file.read_text().strip() if _version_file.exists() else "0.0.0"
-    st.caption(f"GTM Audit Platform  \nv{_version}")
     st.markdown("---")
 
     if st.session_state.get("confirm_logout"):
@@ -61,6 +58,7 @@ with st.sidebar:
         if st.button("Logout", use_container_width=True):
             st.session_state["confirm_logout"] = True
             st.rerun()
+
 
 # Main content
 st.title("GTM Audit Platform")

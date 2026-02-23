@@ -56,7 +56,7 @@ class MCPBrowserClient:
 
         server_params = StdioServerParameters(
             command="npx",
-            args=["chrome-devtools-mcp@latest", "--headless"],
+            args=["chrome-devtools-mcp@latest", "--headless", "--isolated"],
         )
 
         self._transport_ctx = stdio_client(server_params)
@@ -89,10 +89,30 @@ class MCPBrowserClient:
         if not self._session:
             raise RuntimeError("MCP session not connected")
         result = await self._session.call_tool(tool_name, arguments)
+        # Check for MCP error responses
+        if result and hasattr(result, "isError") and result.isError:
+            error_text = ""
+            if hasattr(result, "content") and result.content:
+                error_text = " ".join(
+                    getattr(b, "text", "") for b in result.content
+                )
+            raise RuntimeError(f"MCP tool '{tool_name}' failed: {error_text}")
         return result
+
+    async def is_available(self) -> bool:
+        """Check if the MCP session is connected and responsive."""
+        if not self._session:
+            return False
+        try:
+            await self._call_tool("list_pages", {})
+            return True
+        except Exception as e:
+            logger.debug(f"MCP availability check failed: {e}")
+            return False
 
     async def navigate(self, url: str, timeout: int = 30000) -> None:
         """Navigate to a URL and wait for load."""
+        logger.debug(f"MCP navigating to: {url}")
         await self._call_tool("navigate_page", {
             "type": "url",
             "url": url,

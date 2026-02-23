@@ -8,11 +8,11 @@ from agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
-MESSAGING_SYSTEM = """You are an expert B2B SaaS marketing strategist specializing in messaging,
-positioning, and value propositions. Analyze website content for messaging effectiveness,
-clarity, and target audience alignment. Reference specific examples from the content."""
+MESSAGING_SYSTEM = """You are a senior B2B SaaS marketing strategist who has audited 200+ company websites for messaging effectiveness. You write like a $10K consultant — every finding is specific, evidence-based, and tied to business impact. You quote actual copy from the website and explain not just what's wrong, but what it's costing the business in pipeline and conversion. Your analysis should feel like it came from a trusted advisor who deeply understands B2B buyer psychology, not a crawl tool.
 
-MESSAGING_PROMPT = """Analyze this B2B SaaS company's messaging and positioning effectiveness.
+You are a senior B2B marketing consultant. Write findings in terms of pipeline, revenue, and buyer behavior — not technical implementation details. Be specific to this company. Avoid generic consulting language like 'leverage' and 'optimize.' Conservative and transparent beats optimistic and unsupported. Show your calculation for any projected outcome."""
+
+MESSAGING_PROMPT = """Perform a comprehensive messaging and positioning audit for this B2B SaaS company's website. This is the centerpiece section of a premium GTM audit report.
 
 Website: {company_url}
 Company Name: {company_name}
@@ -26,40 +26,87 @@ CTAs FOUND:
 TESTIMONIALS:
 {testimonials}
 
+YOUR ANALYSIS MUST INCLUDE:
+
+1. **Homepage Messaging Teardown**: Walk through the actual headline hierarchy (H1, H2s, supporting copy). Quote the real text. Explain what's working and what creates confusion for a first-time visitor.
+
+2. **Message Collision Analysis**: Identify where the site tries to be multiple things at once (e.g., platform AND services AND thought leader). Quote the competing messages and explain why this creates buyer hesitation.
+
+3. **Messaging Clarity Test**: Score how quickly a first-time visitor can answer three questions:
+   - "What do you do?" (0-10)
+   - "Who is it for?" (0-10)
+   - "Why should I care?" (0-10)
+   Provide evidence for each score.
+
+4. **Social Proof Gap Analysis**: Evaluate whether stated proof (logos, metrics, testimonials) is substantiated. If they claim Fortune 500 clients but show no logos, flag the trust deficit.
+
+5. **Before/After Suggestions**: For each weak headline or CTA, provide a concrete rewrite with rationale.
+
+CRITICAL INSTRUCTIONS:
+- Quote ACTUAL COPY from the website in your analysis. Don't paraphrase.
+- For every finding, explain the BUSINESS IMPACT (e.g., "This fragmented messaging likely increases bounce rate by 15-25% because visitors can't quickly determine relevance").
+- Compare to BEST PRACTICES with named examples of companies doing it well.
+- Write analysis_summary as a strategic narrative for a CMO, not a list of findings.
+
 Provide a JSON response:
 {{
     "overall_score": <number 0-100>,
     "score_items": [
-        {{"name": "Value Proposition Clarity", "score": <0-100>, "max_score": 100, "weight": 2.0, "notes": "..."}},
-        {{"name": "Headline Effectiveness", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "..."}},
-        {{"name": "Target Audience Alignment", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "..."}},
-        {{"name": "Messaging Hierarchy", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}},
-        {{"name": "Proof Elements (Social Proof)", "score": <0-100>, "max_score": 100, "weight": 1.2, "notes": "..."}},
-        {{"name": "CTA Clarity & Compelling", "score": <0-100>, "max_score": 100, "weight": 1.3, "notes": "..."}},
-        {{"name": "Differentiation / USP", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "..."}},
-        {{"name": "Benefit vs Feature Balance", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}}
+        {{"name": "Value Proposition Clarity", "score": <0-100>, "max_score": 100, "weight": 2.0, "notes": "Quote the actual value prop and assess clarity"}},
+        {{"name": "Homepage Messaging Hierarchy", "score": <0-100>, "max_score": 100, "weight": 1.8, "notes": "Assess the H1→H2→CTA flow"}},
+        {{"name": "Competitive Differentiation", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "How clearly do they stand apart from alternatives?"}},
+        {{"name": "Target Audience Specificity", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "Can a visitor quickly tell if this is for them?"}},
+        {{"name": "Social Proof Effectiveness", "score": <0-100>, "max_score": 100, "weight": 1.3, "notes": "Quality and placement of proof elements"}},
+        {{"name": "CTA Value Framing", "score": <0-100>, "max_score": 100, "weight": 1.3, "notes": "Do CTAs communicate value, not just action?"}},
+        {{"name": "Benefit-Led vs Feature-Led Balance", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Are they leading with outcomes or features?"}},
+        {{"name": "Message Consistency Across Pages", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Does the story hold across pages?"}}
     ],
+    "homepage_teardown": {{
+        "h1_text": "the actual H1 text from the homepage",
+        "h1_assessment": "detailed assessment of why it works or doesn't, with business impact",
+        "h2_texts": ["actual H2 texts from homepage"],
+        "messaging_hierarchy_assessment": "how the H1→H2→CTA flow works or breaks down",
+        "suggested_h1": "concrete rewrite of the H1 with rationale",
+        "suggested_subheadline": "concrete supporting subheadline suggestion"
+    }},
+    "message_collisions": [
+        {{
+            "message_a": "quoted text from site",
+            "message_b": "conflicting quoted text from site",
+            "conflict": "why these messages compete with each other",
+            "resolution": "how to resolve the conflict"
+        }}
+    ],
+    "messaging_clarity_score": {{
+        "what_you_do": {{"score": <0-10>, "evidence": "what a visitor sees and how quickly they understand"}},
+        "who_its_for": {{"score": <0-10>, "evidence": "how clearly the target audience is defined"}},
+        "why_care": {{"score": <0-10>, "evidence": "how compelling the differentiation and urgency is"}}
+    }},
     "current_value_proposition": "their current value prop as stated on site",
+    "suggested_value_proposition": "your recommended value prop rewrite",
     "messaging_pillars": ["list of key messaging pillars/themes identified"],
-    "strengths": ["list of 3-5 messaging strengths"],
-    "weaknesses": ["list of 3-5 messaging weaknesses"],
+    "strengths": ["3-5 messaging strengths with specific quoted evidence"],
+    "weaknesses": ["3-5 messaging weaknesses with business impact estimates"],
     "recommendations": [
         {{
-            "issue": "specific messaging issue",
-            "recommendation": "what to change",
-            "current_state": "current messaging example",
-            "best_practice": "B2B SaaS messaging best practice",
+            "issue": "specific issue with quoted example from the site",
+            "recommendation": "what to change, with concrete new copy",
+            "business_impact": "estimated effect on conversion/pipeline (e.g., 'likely increasing bounce rate by 15-25%')",
+            "before_example": "current copy quoted from the site",
+            "after_example": "suggested replacement copy",
+            "current_state": "description of current state",
+            "best_practice": "named example of a company doing this well",
             "impact": "High|Medium|Low",
             "effort": "High|Medium|Low",
             "implementation_steps": ["step 1", "step 2", "step 3"],
-            "success_metrics": ["metric 1"],
+            "success_metrics": ["metric to track improvement"],
             "timeline": "timeframe"
         }}
     ],
-    "analysis_summary": "2-3 paragraph messaging analysis"
+    "analysis_summary": "3-4 paragraph strategic narrative written for a CMO. Frame the core messaging problem, explain what it's costing the business, and paint a picture of what great messaging would look like for this company. Reference specific copy from the site."
 }}
 
-Generate 5-8 specific recommendations with real examples from the content."""
+Generate 6-10 specific, actionable recommendations with quoted examples from the actual content."""
 
 
 class MessagingAgent(BaseAgent):
@@ -87,7 +134,7 @@ class MessagingAgent(BaseAgent):
 
         try:
             if screenshots:
-                await self.update_progress(40, "Analyzing messaging with AI Vision")
+                await self.update_progress(40, "Sending to AI Vision for messaging analysis")
                 image_labels = "\n".join(f"- Image {i+1}: {s['label']}" for i, s in enumerate(screenshots))
                 vision_addendum = (
                     f"\n\nI've also attached screenshots of the website. "
@@ -98,9 +145,10 @@ class MessagingAgent(BaseAgent):
                 vision_images = [{"base64": s["base64"], "media_type": "image/png"} for s in screenshots]
                 response = await self.call_llm_vision(enhanced_prompt, vision_images, system=MESSAGING_SYSTEM)
             else:
-                await self.update_progress(40, "Analyzing messaging with AI")
+                await self.update_progress(40, "Sending to AI for messaging analysis")
                 response = await self.call_llm_json(prompt, system=MESSAGING_SYSTEM)
 
+            await self.update_progress(70, "Parsing AI messaging response")
             result = self.parse_json(response)
 
             if not result:
@@ -128,7 +176,11 @@ class MessagingAgent(BaseAgent):
                     "strengths": result.get("strengths", []),
                     "weaknesses": result.get("weaknesses", []),
                     "current_value_proposition": result.get("current_value_proposition", ""),
+                    "suggested_value_proposition": result.get("suggested_value_proposition", ""),
                     "messaging_pillars": result.get("messaging_pillars", []),
+                    "homepage_teardown": result.get("homepage_teardown", {}),
+                    "message_collisions": result.get("message_collisions", []),
+                    "messaging_clarity_score": result.get("messaging_clarity_score", {}),
                     "recommendations": recs,
                     "vision_enabled": bool(screenshots),
                 },

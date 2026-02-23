@@ -164,9 +164,19 @@ class BaseAgent(ABC):
 
         await self.update_progress(0, f"Starting {self.agent_display_name}")
 
+        # Per-agent timeout: prevent any single agent from hanging indefinitely
+        from config.settings import get_settings
+        settings = get_settings()
+        total_seconds = settings.audit_timeout_minutes * 60
+        # Report agent makes 9+ sequential LLM calls; give it more time
+        if self.agent_name == "report":
+            agent_timeout = total_seconds * 0.67  # ~30 min
+        else:
+            agent_timeout = total_seconds / 3  # ~15 min per agent
+
         for attempt in range(1, self.max_retries + 1):
             try:
-                result = await self.run()
+                result = await asyncio.wait_for(self.run(), timeout=agent_timeout)
 
                 self._status = "completed"
                 await self.update_progress(100, "Complete")
@@ -195,6 +205,28 @@ class BaseAgent(ABC):
                 logger.info(f"[{self.agent_name}] Completed successfully")
                 return output
 
+            except asyncio.TimeoutError:
+                logger.error(
+                    f"[{self.agent_name}] Attempt {attempt}/{self.max_retries} "
+                    f"timed out after {agent_timeout:.0f}s"
+                )
+                self._last_error = f"Agent timed out after {agent_timeout:.0f}s"
+                if attempt >= self.max_retries:
+                    self._status = "failed"
+                    error_result = {
+                        "status": "failed",
+                        "error": f"Timed out after {agent_timeout:.0f}s",
+                    }
+                    await self.context.set_analysis(self.agent_name, error_result)
+                    self._persist_result(error_result)
+                    await self.bus.publish(
+                        AgentMessage(
+                            sender=self.agent_name,
+                            message_type=MessageType.TASK_FAILED,
+                            data=error_result,
+                        )
+                    )
+                    return error_result
             except Exception as e:
                 logger.error(
                     f"[{self.agent_name}] Attempt {attempt}/{self.max_retries} "
@@ -261,7 +293,7 @@ class BaseAgent(ABC):
     async def call_llm_json(self, prompt: str, system: str = "") -> str:
         """Call the Claude API expecting JSON output. Adds JSON-only instruction.
 
-        Uses max_tokens=8000 to prevent JSON truncation regardless of global setting.
+        Uses the global llm_max_tokens setting (default 16000) to avoid truncation.
         """
         if not self.llm:
             err = f"[{self.agent_name}] No LLM client configured"
@@ -269,21 +301,20 @@ class BaseAgent(ABC):
             raise RuntimeError(err)
         try:
             return await self.llm.complete_with_json(
-                prompt, system=system, max_tokens=8000
+                prompt, system=system
             )
         except Exception as e:
             self._last_error = f"{type(e).__name__}: {e}"
             raise
 
     def parse_json(self, text: str) -> dict | None:
-        """Parse JSON from LLM response, handling markdown code fences."""
-        # Strip markdown code fences if present
+        """Parse JSON from LLM response, handling markdown code fences and common LLM issues."""
+        # Strip markdown code fences (handle various formats)
         cleaned = text.strip()
-        if cleaned.startswith("```"):
-            # Remove opening fence (```json or ```)
-            cleaned = re.sub(r"^```(?:json)?\s*\n?", "", cleaned)
-            # Remove closing fence
-            cleaned = re.sub(r"\n?```\s*$", "", cleaned)
+        # Remove all code fences: ```json ... ``` or ``` ... ```
+        cleaned = re.sub(r"^```(?:json|JSON)?\s*\n?", "", cleaned)
+        cleaned = re.sub(r"\n?```\s*$", "", cleaned)
+        cleaned = cleaned.strip()
 
         # Try direct parse
         try:
@@ -291,13 +322,88 @@ class BaseAgent(ABC):
         except json.JSONDecodeError:
             pass
 
+        # Fix common LLM JSON issues: trailing commas before } or ]
+        fixed = re.sub(r",\s*([}\]])", r"\1", cleaned)
+        try:
+            return json.loads(fixed)
+        except json.JSONDecodeError:
+            pass
+
         # Try to extract JSON object with regex
-        match = re.search(r"\{[\s\S]*\}", cleaned)
+        match = re.search(r"\{[\s\S]*\}", fixed)
         if match:
+            json_str = match.group()
             try:
-                return json.loads(match.group())
-            except json.JSONDecodeError:
-                pass
+                return json.loads(json_str)
+            except json.JSONDecodeError as e:
+                # JSON is likely truncated (max_tokens hit). Try to salvage.
+                # Strategy: find the error position, then search backward for
+                # a point where we can close all open braces/brackets.
+                logger.info(
+                    f"[{self.agent_name}] JSON malformed at char {e.pos}/{len(json_str)}. "
+                    f"Attempting truncation recovery..."
+                )
+                return self._recover_truncated_json(json_str, e.pos)
 
         logger.warning(f"[{self.agent_name}] Failed to parse JSON from response ({len(text)} chars)")
+        return None
+
+    def _recover_truncated_json(self, json_str: str, error_pos: int) -> dict | None:
+        """Attempt to recover a truncated JSON response by closing open structures.
+
+        Works by finding the last complete value before the error, then closing
+        any open braces/brackets.
+        """
+        # Start searching from the error position backward
+        search_start = min(error_pos, len(json_str) - 1)
+
+        # Strategy 1: Try closing open structures at various truncation points
+        # Find positions of all } and ] characters before the error
+        for pos in range(search_start, max(0, search_start - 5000), -1):
+            ch = json_str[pos]
+            if ch in ('}', ']', '"'):
+                # Try to parse up to this character
+                candidate = json_str[:pos + 1]
+
+                # Count open/close braces and brackets to auto-close
+                open_braces = candidate.count('{') - candidate.count('}')
+                open_brackets = candidate.count('[') - candidate.count(']')
+
+                # Close any remaining open structures
+                suffix = ']' * max(0, open_brackets) + '}' * max(0, open_braces)
+                attempt = candidate + suffix
+
+                try:
+                    result = json.loads(attempt)
+                    logger.info(
+                        f"[{self.agent_name}] Recovered truncated JSON at pos {pos}/{len(json_str)} "
+                        f"(closed {open_braces} braces, {open_brackets} brackets)"
+                    )
+                    return result
+                except json.JSONDecodeError:
+                    continue
+
+        # Strategy 2: Try removing the last incomplete key-value pair
+        # Look for the last complete "key": value pattern
+        for pos in range(search_start, max(0, search_start - 5000), -1):
+            if json_str[pos] == ',':
+                candidate = json_str[:pos]
+                open_braces = candidate.count('{') - candidate.count('}')
+                open_brackets = candidate.count('[') - candidate.count(']')
+                suffix = ']' * max(0, open_brackets) + '}' * max(0, open_braces)
+                attempt = candidate + suffix
+
+                try:
+                    result = json.loads(attempt)
+                    logger.info(
+                        f"[{self.agent_name}] Recovered truncated JSON at comma pos {pos}"
+                    )
+                    return result
+                except json.JSONDecodeError:
+                    continue
+
+        logger.warning(
+            f"[{self.agent_name}] Failed to recover truncated JSON "
+            f"(error at {error_pos}/{len(json_str)} chars)"
+        )
         return None

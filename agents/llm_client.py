@@ -26,7 +26,7 @@ class LLMClient:
                 raise RuntimeError(
                     "ANTHROPIC_API_KEY not set. Add it to your .env file."
                 )
-            self._client = anthropic.AsyncAnthropic(api_key=self._api_key)
+            self._client = anthropic.AsyncAnthropic(api_key=self._api_key, timeout=300.0)
         return self._client
 
     async def complete(

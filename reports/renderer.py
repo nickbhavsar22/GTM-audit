@@ -24,11 +24,18 @@ class ReportRenderer:
         self.env.filters["score_color"] = self._score_color
         self.env.filters["grade_color"] = self._grade_color
 
+    def _load_embedded_fonts(self) -> str:
+        """No longer embedding fonts — using system fallback stack per brand guidelines."""
+        return ""
+
     def render_html(
         self,
         report: AuditReport,
         company_profile: dict | None = None,
         screenshots: dict | None = None,
+        screenshot_diagnostic: str = "",
+        executive_narrative: str = "",
+        annotated_screenshots: list[dict] | None = None,
     ) -> str:
         """Render full HTML report with optional screenshot embedding."""
         template_name = (
@@ -44,6 +51,9 @@ class ReportRenderer:
         if logo_path.exists():
             logo_base64 = base64.b64encode(logo_path.read_bytes()).decode()
 
+        # Load embedded fonts for self-contained rendering
+        embedded_font_css = self._load_embedded_fonts()
+
         # Build screenshot data for template
         screenshot_data = {}
         module_screenshots = {}
@@ -54,6 +64,17 @@ class ReportRenderer:
                 screenshots, report
             )
 
+        from config.settings import get_version
+
+        # For quick reports, keep content concise
+        is_quick = report.audit_type == "quick"
+        max_recs = 10 if is_quick else 20
+        max_highlights = 3 if is_quick else 5
+
+        # Load consultant settings
+        from config.settings import get_settings
+        settings = get_settings()
+
         return template.render(
             report=report,
             company_name=report.company_name,
@@ -61,15 +82,31 @@ class ReportRenderer:
             overall_score=report.overall_percentage,
             overall_grade=report.overall_grade.value,
             modules=report.modules,
-            recommendations=report.get_all_recommendations()[:20],
-            quick_wins=report.get_quick_wins(5),
-            strengths=report.get_top_strengths(5),
-            critical_gaps=report.get_critical_gaps(5),
+            recommendations=report.get_all_recommendations()[:max_recs],
+            quick_wins=report.get_quick_wins(max_highlights),
+            strengths=report.get_top_strengths(max_highlights),
+            critical_gaps=report.get_critical_gaps(max_highlights),
             company_profile=company_profile or {},
             logo_base64=logo_base64,
+            embedded_font_css=embedded_font_css,
             has_screenshots=bool(screenshot_data),
             module_screenshots=module_screenshots,
             mockup_pairs=mockup_pairs,
+            screenshot_diagnostic=screenshot_diagnostic,
+            executive_narrative=executive_narrative,
+            app_version=get_version(),
+            # New report sections
+            strategic_diagnosis=report.strategic_diagnosis,
+            buyer_journey_analysis=report.buyer_journey_analysis,
+            revenue_impact_model=report.revenue_impact_model,
+            benchmarks=report.benchmarks,
+            talk_track=report.talk_track,
+            cmo_faq=report.cmo_faq,
+            next_steps=report.next_steps_summary,
+            annotated_screenshots=annotated_screenshots or [],
+            # Consultant info
+            consultant_name=getattr(settings, "consultant_name", "Bhavsar Growth Consulting"),
+            consultant_bio=getattr(settings, "consultant_bio", ""),
         )
 
     def _process_screenshots(

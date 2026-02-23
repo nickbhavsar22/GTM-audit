@@ -8,11 +8,9 @@ from agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
-ICP_SYSTEM = """You are a B2B SaaS market segmentation and ICP (Ideal Customer Profile) strategist.
-Analyze website content and company data to define target segments, buyer personas,
-and ICP alignment. Be specific with evidence from the content."""
+ICP_SYSTEM = """You are a B2B SaaS go-to-market strategist who specializes in ICP definition and buyer persona development. You don't just define segments — you assess how well the company's entire web presence aligns with the buyers they're trying to reach. You identify gaps between who they say they serve and how their website actually speaks to those buyers. Your analysis helps marketing teams focus resources on the segments where they can win."""
 
-ICP_PROMPT = """Define the ICP and market segmentation for this B2B SaaS company.
+ICP_PROMPT = """Perform a comprehensive ICP and buyer persona assessment for this B2B SaaS company. Evaluate how well their website targets and speaks to their ideal buyers.
 
 Website: {company_url}
 Company Name: {company_name}
@@ -26,58 +24,81 @@ TESTIMONIALS & CUSTOMER EVIDENCE:
 KEY PAGE CONTENT:
 {key_content}
 
+CRITICAL INSTRUCTIONS:
+- For every finding, explain the BUSINESS IMPACT — how ICP clarity (or lack thereof) affects pipeline quality and conversion (e.g., "Trying to speak to both SMBs and enterprises on the same homepage dilutes the message for both, likely reducing qualified demo requests by 20-30%").
+- Quote ACTUAL copy from the website that reveals targeting choices (or lack thereof).
+- Assess the GAP between stated ICP and how the website actually communicates — do they say they target enterprise but their copy reads SMB?
+- Compare to BEST PRACTICES with named examples of B2B SaaS companies with excellent ICP alignment.
+- Write analysis_summary as a strategic narrative about go-to-market focus.
+
 Provide a JSON response:
 {{
     "overall_score": <number 0-100 based on ICP clarity and targeting effectiveness>,
     "score_items": [
-        {{"name": "ICP Definition Clarity", "score": <0-100>, "max_score": 100, "weight": 2.0, "notes": "..."}},
-        {{"name": "Segment-Specific Messaging", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "..."}},
-        {{"name": "Buyer Persona Evidence", "score": <0-100>, "max_score": 100, "weight": 1.3, "notes": "..."}},
-        {{"name": "Use Case Documentation", "score": <0-100>, "max_score": 100, "weight": 1.2, "notes": "..."}},
-        {{"name": "Industry Targeting", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}},
-        {{"name": "Company Size Targeting", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}}
+        {{"name": "ICP Definition Clarity", "score": <0-100>, "max_score": 100, "weight": 2.0, "notes": "Can a visitor quickly tell if this product is for them?"}},
+        {{"name": "Segment-Specific Messaging", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "Does the site speak differently to different buyer segments?"}},
+        {{"name": "Buyer Persona Evidence", "score": <0-100>, "max_score": 100, "weight": 1.3, "notes": "Are specific roles/titles addressed with relevant messaging?"}},
+        {{"name": "Use Case Documentation", "score": <0-100>, "max_score": 100, "weight": 1.2, "notes": "Are use cases clearly articulated with outcomes?"}},
+        {{"name": "Industry Targeting", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Are target industries named and supported with relevant content?"}},
+        {{"name": "Company Size Targeting", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Is the company size targeting consistent across the site?"}}
     ],
     "icp_definition": {{
         "primary_icp": {{
-            "company_size": "e.g., 50-500 employees",
-            "industries": ["list of target industries"],
-            "roles": ["key buyer roles"],
-            "pain_points": ["main pain points addressed"],
-            "use_cases": ["primary use cases"]
+            "company_size": "e.g., 50-500 employees — with evidence from the site",
+            "industries": ["list of target industries with evidence"],
+            "roles": ["key buyer roles with evidence from copy"],
+            "pain_points": ["main pain points addressed — quote the copy"],
+            "use_cases": ["primary use cases — quote the copy"],
+            "evidence_strength": "strong|moderate|weak — how clearly is the ICP defined?"
         }},
         "secondary_segments": [
             {{
                 "segment_name": "name",
                 "description": "description",
-                "evidence": "evidence from website"
+                "evidence": "quoted evidence from website",
+                "messaging_alignment": "how well the site speaks to this segment"
             }}
         ]
     }},
     "buyer_personas": [
         {{
             "title": "e.g., VP of Marketing",
-            "goals": ["their goals"],
-            "challenges": ["their challenges"],
-            "messaging_alignment": "how well the site speaks to this persona"
+            "seniority": "C-suite|VP|Director|Manager|Individual Contributor",
+            "goals": ["their goals relevant to this product"],
+            "challenges": ["their challenges this product addresses"],
+            "messaging_alignment": "how well the site speaks to this persona with quoted evidence",
+            "buyer_journey_support": "does the site provide content for this persona's evaluation process?"
         }}
     ],
-    "strengths": ["3-5 ICP/segmentation strengths"],
-    "weaknesses": ["3-5 ICP/segmentation weaknesses"],
+    "icp_alignment_gaps": [
+        {{
+            "gap": "specific gap between stated ICP and website messaging",
+            "evidence": "quoted copy showing the misalignment",
+            "business_impact": "estimated effect on pipeline quality"
+        }}
+    ],
+    "strengths": ["3-5 ICP/segmentation strengths with quoted evidence"],
+    "weaknesses": ["3-5 ICP/segmentation weaknesses with business impact"],
     "recommendations": [
         {{
-            "issue": "ICP/segmentation issue",
+            "issue": "ICP/segmentation issue with quoted evidence",
             "recommendation": "what to improve",
+            "business_impact": "estimated effect on pipeline quality or conversion",
+            "before_example": "current messaging that misses the ICP",
+            "after_example": "suggested ICP-aligned messaging",
             "current_state": "current state",
-            "best_practice": "segmentation best practice",
+            "best_practice": "named example of a B2B SaaS company with excellent ICP alignment",
             "impact": "High|Medium|Low",
             "effort": "High|Medium|Low",
             "implementation_steps": ["step 1", "step 2"],
-            "success_metrics": ["metric"],
+            "success_metrics": ["metric to track improvement"],
             "timeline": "timeframe"
         }}
     ],
-    "analysis_summary": "2-3 paragraph ICP/segmentation analysis"
-}}"""
+    "analysis_summary": "3-4 paragraph strategic narrative about the company's ICP clarity and go-to-market focus. Frame how targeting decisions affect pipeline quality and conversion efficiency."
+}}
+
+Generate 5-8 specific, actionable ICP alignment recommendations."""
 
 
 class ICPAgent(BaseAgent):
@@ -120,6 +141,7 @@ class ICPAgent(BaseAgent):
                     "score_items": result.get("score_items", []),
                     "icp_definition": result.get("icp_definition", {}),
                     "buyer_personas": result.get("buyer_personas", []),
+                    "icp_alignment_gaps": result.get("icp_alignment_gaps", []),
                     "strengths": result.get("strengths", []),
                     "weaknesses": result.get("weaknesses", []),
                     "recommendations": result.get("recommendations", []),

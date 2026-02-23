@@ -14,7 +14,7 @@ from frontend.utils.brand_loader import inject_brand_css
 
 st.set_page_config(
     page_title="New Audit - GTM Audit",
-    page_icon=":material/analytics:",
+    page_icon="\U0001f4ca",
     layout="wide",
 )
 

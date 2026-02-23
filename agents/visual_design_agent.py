@@ -8,9 +8,7 @@ from agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
-DESIGN_SYSTEM = """You are an expert UX/UI designer and web design analyst specializing in B2B SaaS websites.
-Analyze the provided website structure and content for design effectiveness, visual hierarchy,
-and conversion-oriented design patterns. Reference specific pages and elements."""
+DESIGN_SYSTEM = """You are a senior UX/UI strategist who has redesigned 100+ B2B SaaS websites. You evaluate design not just for aesthetics but for its impact on conversion and trust. Every design choice either builds buyer confidence or erodes it — you identify which is happening and why. You reference specific pages and elements, compare to best-in-class B2B SaaS sites by name, and explain what each design issue is costing the business. Your analysis reads like a UX audit from a top design agency."""
 
 DESIGN_PROMPT = """Analyze this B2B SaaS website's visual design and UX effectiveness.
 
@@ -28,38 +26,48 @@ FORMS:
 IMAGE DATA:
 {images}
 
+CRITICAL INSTRUCTIONS:
+- For every finding, explain the BUSINESS IMPACT — how the design choice affects conversion, trust, or engagement (e.g., "The lack of visual hierarchy in the hero section means visitors take 5-8 seconds to understand the value prop, increasing bounce rate by an estimated 15-20%").
+- Reference SPECIFIC pages and elements from the data provided.
+- Compare to BEST PRACTICES with named examples of well-designed B2B SaaS sites.
+- For each recommendation, describe the BEFORE state and AFTER state concretely.
+- Write analysis_summary as a strategic narrative for a marketing leader, not a design checklist.
+
 Provide a JSON response:
 {{
     "overall_score": <number 0-100>,
     "score_items": [
-        {{"name": "Visual Hierarchy", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "..."}},
-        {{"name": "CTA Design & Placement", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "..."}},
-        {{"name": "Content Layout", "score": <0-100>, "max_score": 100, "weight": 1.2, "notes": "..."}},
-        {{"name": "Imagery & Media Quality", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}},
-        {{"name": "Navigation & Information Architecture", "score": <0-100>, "max_score": 100, "weight": 1.3, "notes": "..."}},
-        {{"name": "Trust Indicators Design", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}},
-        {{"name": "Form Design", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}},
-        {{"name": "Overall Visual Polish", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}}
+        {{"name": "Visual Hierarchy", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "Assess how effectively the eye is guided to key messages and CTAs"}},
+        {{"name": "CTA Design & Placement", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "Quote actual CTAs and assess their visual prominence and placement"}},
+        {{"name": "Content Layout", "score": <0-100>, "max_score": 100, "weight": 1.2, "notes": "Assess scannability, whitespace, and content organization"}},
+        {{"name": "Imagery & Media Quality", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Assess whether images build trust or feel generic"}},
+        {{"name": "Navigation & Information Architecture", "score": <0-100>, "max_score": 100, "weight": 1.3, "notes": "Assess whether visitors can find what they need quickly"}},
+        {{"name": "Trust Indicators Design", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Assess visual treatment of logos, testimonials, security badges"}},
+        {{"name": "Form Design", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Assess form UX, field count, and visual treatment"}},
+        {{"name": "Overall Visual Polish", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Does the site feel premium and professional?"}}
     ],
-    "strengths": ["3-5 design strengths with specific evidence"],
-    "weaknesses": ["3-5 design weaknesses with specific evidence"],
+    "strengths": ["3-5 design strengths with specific evidence and business impact"],
+    "weaknesses": ["3-5 design weaknesses with estimated conversion impact"],
     "recommendations": [
         {{
-            "issue": "specific design issue",
-            "recommendation": "what to change",
+            "issue": "specific design issue with page reference",
+            "recommendation": "what to change with concrete specifics",
+            "business_impact": "estimated effect on conversion or engagement",
+            "before_example": "description of current design state",
+            "after_example": "description of recommended design change",
             "current_state": "current design description",
-            "best_practice": "design best practice",
+            "best_practice": "named example of a B2B SaaS site doing this well",
             "impact": "High|Medium|Low",
             "effort": "High|Medium|Low",
             "implementation_steps": ["step 1", "step 2", "step 3"],
-            "success_metrics": ["metric 1"],
+            "success_metrics": ["metric to track improvement"],
             "timeline": "timeframe"
         }}
     ],
-    "analysis_summary": "2-3 paragraph design analysis"
+    "analysis_summary": "3-4 paragraph design analysis as a strategic narrative. Frame how design choices affect buyer confidence and conversion, not just aesthetics."
 }}
 
-Generate 5-8 specific, actionable design recommendations."""
+Generate 5-8 specific, actionable design recommendations with before/after descriptions."""
 
 
 class VisualDesignAgent(BaseAgent):
@@ -146,36 +154,45 @@ FORMS:
 IMAGE DATA:
 {images}
 
+CRITICAL INSTRUCTIONS:
+- For every finding, explain the BUSINESS IMPACT — how the design choice affects conversion and trust (e.g., "The low-contrast CTA button blends into the hero section, likely reducing click-through by 15-25%").
+- Reference what you ACTUALLY SEE in the screenshots — colors, layout, spacing, visual hierarchy.
+- Compare to BEST PRACTICES with named examples of well-designed B2B SaaS sites.
+- For each recommendation, describe the BEFORE (what you see) and AFTER (what it should look like).
+
 Based on what you SEE in the screenshots AND the extracted data, provide a JSON response:
 {{
     "overall_score": <number 0-100>,
     "score_items": [
-        {{"name": "Visual Hierarchy", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "..."}},
-        {{"name": "CTA Design & Placement", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "..."}},
-        {{"name": "Content Layout", "score": <0-100>, "max_score": 100, "weight": 1.2, "notes": "..."}},
-        {{"name": "Imagery & Media Quality", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}},
-        {{"name": "Navigation & Information Architecture", "score": <0-100>, "max_score": 100, "weight": 1.3, "notes": "..."}},
-        {{"name": "Trust Indicators Design", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}},
-        {{"name": "Form Design", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}},
-        {{"name": "Overall Visual Polish", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}}
+        {{"name": "Visual Hierarchy", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "Assess how effectively the eye is guided to key messages and CTAs"}},
+        {{"name": "CTA Design & Placement", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "Describe the actual CTA appearance and assess visual prominence"}},
+        {{"name": "Content Layout", "score": <0-100>, "max_score": 100, "weight": 1.2, "notes": "Assess scannability, whitespace, and content organization"}},
+        {{"name": "Imagery & Media Quality", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Assess whether images build trust or feel generic"}},
+        {{"name": "Navigation & Information Architecture", "score": <0-100>, "max_score": 100, "weight": 1.3, "notes": "Assess navigation clarity and findability"}},
+        {{"name": "Trust Indicators Design", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Assess visual treatment of logos, testimonials, badges"}},
+        {{"name": "Form Design", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Assess form UX and visual treatment"}},
+        {{"name": "Overall Visual Polish", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Does the site feel premium and professional?"}}
     ],
     "visual_observations": ["list of specific things you observe in the screenshots"],
-    "strengths": ["3-5 design strengths with specific visual evidence"],
-    "weaknesses": ["3-5 design weaknesses with specific visual evidence"],
+    "strengths": ["3-5 design strengths with specific visual evidence and business impact"],
+    "weaknesses": ["3-5 design weaknesses with estimated conversion impact"],
     "recommendations": [
         {{
             "issue": "specific design issue observed in screenshots",
-            "recommendation": "what to change",
+            "recommendation": "what to change with concrete specifics",
+            "business_impact": "estimated effect on conversion or engagement",
+            "before_example": "description of current design as seen in screenshot",
+            "after_example": "description of recommended design change",
             "current_state": "current design as seen in screenshot",
-            "best_practice": "design best practice",
+            "best_practice": "named example of a B2B SaaS site doing this well",
             "impact": "High|Medium|Low",
             "effort": "High|Medium|Low",
             "implementation_steps": ["step 1", "step 2", "step 3"],
-            "success_metrics": ["metric 1"],
+            "success_metrics": ["metric to track improvement"],
             "timeline": "timeframe"
         }}
     ],
-    "analysis_summary": "2-3 paragraph design analysis referencing what you see in the screenshots"
+    "analysis_summary": "3-4 paragraph design analysis referencing what you see in the screenshots. Frame design as a conversion driver, not just aesthetics."
 }}
 
 Generate 5-8 specific, actionable design recommendations based on visual evidence."""

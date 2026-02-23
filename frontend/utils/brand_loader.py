@@ -8,6 +8,8 @@ _CSS_PATH = Path(__file__).resolve().parent.parent / "assets" / "css" / "brand.c
 
 
 def inject_brand_css():
-    """Inject the brand CSS into the current Streamlit page."""
+    """Inject the brand CSS and pinned version label into the current Streamlit page."""
     css = _CSS_PATH.read_text(encoding="utf-8")
-    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+    from config.settings import get_version
+    version_html = f'<div class="sidebar-version">v{get_version()}</div>'
+    st.markdown(f"<style>{css}</style>{version_html}", unsafe_allow_html=True)

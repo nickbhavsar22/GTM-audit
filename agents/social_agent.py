@@ -8,11 +8,9 @@ from agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
-SOCIAL_SYSTEM = """You are a B2B social media and content strategist.
-Analyze the company's social media presence and content strategy based on the available data.
-Focus on what can be inferred from the website about their social strategy."""
+SOCIAL_SYSTEM = """You are a B2B content and demand generation strategist. You evaluate content strategy not as a vanity metric exercise but as a demand generation engine assessment. You analyze whether the company's content and social presence is actually driving pipeline — attracting the right audience, nurturing consideration, and supporting the sales process. You name specific content gaps and compare to best-in-class B2B SaaS content programs. Your analysis reads like strategic advice from a content marketing consultant."""
 
-SOCIAL_PROMPT = """Analyze social media presence and content strategy for this B2B SaaS company.
+SOCIAL_PROMPT = """Perform a comprehensive content strategy and digital presence audit for this B2B SaaS company.
 
 Website: {company_url}
 Company Name: {company_name}
@@ -26,41 +24,60 @@ BLOG/CONTENT PAGES FOUND:
 WEBSITE CONTENT THEMES:
 {content_themes}
 
+CRITICAL INSTRUCTIONS:
+- For every finding, explain the BUSINESS IMPACT on demand generation and pipeline (e.g., "Having no blog content targeting comparison keywords means {company_name} is invisible during the evaluation phase when buyers are choosing between solutions").
+- Assess content-market fit: does the content match what their target buyers actually search for?
+- Evaluate the content funnel: is there content for awareness, consideration, AND decision stages?
+- Compare to BEST PRACTICES with named examples of B2B SaaS companies with strong content engines.
+- Write analysis_summary as a strategic narrative about the company's content-driven demand generation.
+
 Provide a JSON response:
 {{
     "overall_score": <number 0-100>,
     "score_items": [
-        {{"name": "Social Platform Presence", "score": <0-100>, "max_score": 100, "weight": 1.2, "notes": "..."}},
-        {{"name": "Content Strategy Visibility", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "..."}},
-        {{"name": "Blog/Resource Quality", "score": <0-100>, "max_score": 100, "weight": 1.3, "notes": "..."}},
-        {{"name": "Social Proof Integration", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}},
-        {{"name": "Content Freshness", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}},
-        {{"name": "Thought Leadership Signals", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}}
+        {{"name": "Social Platform Presence", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Which platforms, and are they active?"}},
+        {{"name": "Content Strategy Depth", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "Is there a clear content strategy targeting buyer keywords?"}},
+        {{"name": "Content Funnel Coverage", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "Content for awareness, consideration, and decision stages?"}},
+        {{"name": "Blog/Resource Quality", "score": <0-100>, "max_score": 100, "weight": 1.3, "notes": "Depth, expertise, and relevance of content"}},
+        {{"name": "Content Freshness & Velocity", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "How recently and frequently is content published?"}},
+        {{"name": "Thought Leadership Signals", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Does the company demonstrate domain expertise?"}}
     ],
     "platforms_detected": {{"linkedin": "url", "twitter": "url"}},
     "content_assessment": {{
-        "has_blog": true/false,
+        "has_blog": true|false,
         "blog_page_count": <number>,
-        "content_themes": ["themes identified"],
-        "content_freshness": "active/stale/unknown"
+        "content_themes": ["themes identified from actual content"],
+        "content_freshness": "active|stale|unknown",
+        "content_types_found": ["blog posts", "case studies", "webinars", etc.],
+        "missing_content_types": ["content types that should exist for this business"],
+        "funnel_coverage": {{
+            "awareness": "assessment of top-of-funnel content",
+            "consideration": "assessment of mid-funnel content (comparisons, guides)",
+            "decision": "assessment of bottom-funnel content (case studies, ROI calculators)"
+        }}
     }},
-    "strengths": ["3-5 social/content strengths"],
-    "weaknesses": ["3-5 social/content weaknesses"],
+    "strengths": ["3-5 content/social strengths with specific evidence"],
+    "weaknesses": ["3-5 content/social weaknesses with business impact on demand gen"],
     "recommendations": [
         {{
-            "issue": "social/content issue",
-            "recommendation": "what to do",
+            "issue": "specific content/social gap with evidence",
+            "recommendation": "what to create or change",
+            "business_impact": "estimated effect on organic traffic or lead generation",
+            "before_example": "current state of content strategy",
+            "after_example": "what improved content strategy looks like",
             "current_state": "current state",
-            "best_practice": "best practice",
+            "best_practice": "named example of a B2B SaaS company doing this well",
             "impact": "High|Medium|Low",
             "effort": "High|Medium|Low",
             "implementation_steps": ["step 1", "step 2"],
-            "success_metrics": ["metric"],
+            "success_metrics": ["metric to track improvement"],
             "timeline": "timeframe"
         }}
     ],
-    "analysis_summary": "2-3 paragraph social/content analysis"
-}}"""
+    "analysis_summary": "3-4 paragraph strategic narrative about the company's content-driven demand generation. Frame content as a pipeline driver, not a marketing checkbox."
+}}
+
+Generate 5-8 specific, actionable content strategy recommendations."""
 
 
 class SocialAgent(BaseAgent):

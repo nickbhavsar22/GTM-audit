@@ -50,3 +50,6 @@ token.json
 # Logs
 *.log
 logs/
+
+# Claude Code config (local preferences)
+.claude/

@@ -13,9 +13,6 @@ def render_sidebar() -> None:
             st.image(str(_logo_path), width=200)
         else:
             st.markdown("### Bhavsar Growth Consulting")
-        _version_file = Path(__file__).resolve().parent.parent.parent / "VERSION"
-        _version = _version_file.read_text().strip() if _version_file.exists() else "0.0.0"
-        st.caption(f"GTM Audit Platform  \nv{_version}")
         st.markdown("---")
 
         st.page_link("frontend/streamlit_app.py", label="Home", icon=":material/home:")
@@ -39,3 +36,4 @@ def render_sidebar() -> None:
             if st.button("Logout", use_container_width=True):
                 st.session_state["confirm_logout"] = True
                 st.rerun()
+

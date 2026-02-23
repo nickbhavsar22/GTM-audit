@@ -55,8 +55,8 @@ def render_report_viewer(audit_id: str) -> None:
 
     st.markdown("---")
 
-    # Download buttons
-    col1, col2, col3 = st.columns(3)
+    # Download + delete buttons
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         if html_content:
             st.download_button(
@@ -75,6 +75,33 @@ def render_report_viewer(audit_id: str) -> None:
             )
     with col3:
         st.button("Generate PDF", key="gen_pdf", disabled=True, help="Coming soon")
+    with col4:
+        if st.button("🗑️ Delete Audit", key="del_report_audit"):
+            st.session_state["confirm_delete_report"] = True
+            st.rerun()
+
+    # Delete confirmation
+    if st.session_state.get("confirm_delete_report"):
+        st.warning(
+            "**Delete this audit?** This will permanently remove the audit, "
+            "report, and all results. This cannot be undone."
+        )
+        c1, c2, c3 = st.columns([1, 1, 4])
+        with c1:
+            if st.button("Confirm Delete", key="yes_del_report", type="primary"):
+                del_db = SessionLocal()
+                try:
+                    AuditService(del_db).delete_audit(audit_id)
+                finally:
+                    del_db.close()
+                st.session_state.pop("confirm_delete_report", None)
+                st.session_state.pop("view_audit_id", None)
+                st.switch_page("pages/3_Audit_History.py")
+        with c2:
+            if st.button("Cancel", key="no_del_report"):
+                st.session_state.pop("confirm_delete_report", None)
+                st.rerun()
+        return  # Don't render report while confirming
 
     st.markdown("---")
 

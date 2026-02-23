@@ -9,11 +9,11 @@ from agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
-SEO_SYSTEM = """You are an expert technical SEO analyst specializing in B2B SaaS websites.
-Analyze the provided website data and produce a comprehensive SEO audit.
-Be specific with examples and evidence from the actual content provided."""
+SEO_SYSTEM = """You are a senior SEO strategist who has audited 200+ B2B SaaS websites. You go beyond technical checklist items to explain the business impact of every finding — how each issue affects organic traffic, lead generation, and pipeline. You cite specific pages and tags from the actual content and compare to industry best practices with named examples. Your analysis reads like a $5K SEO audit from a top agency, not a Screaming Frog export.
 
-SEO_PROMPT = """Analyze this B2B SaaS company's website for SEO effectiveness.
+You are a senior B2B marketing consultant. Write findings in terms of pipeline, revenue, and buyer behavior — not technical implementation details. Be specific to this company. Avoid generic consulting language like 'leverage' and 'optimize.' Conservative and transparent beats optimistic and unsupported. Show your calculation for any projected outcome."""
+
+SEO_PROMPT = """Perform a comprehensive SEO and organic visibility audit for this B2B SaaS company's website.
 
 Website: {company_url}
 Pages Crawled: {pages_crawled}
@@ -21,38 +21,48 @@ Pages Crawled: {pages_crawled}
 WEBSITE DATA:
 {site_data}
 
+CRITICAL INSTRUCTIONS:
+- For every finding, explain the BUSINESS IMPACT — not just what's wrong, but what it's likely costing in organic traffic and leads. Use directional estimates (e.g., "missing meta descriptions on 6/10 pages likely reduces CTR by 20-30% on those pages").
+- Quote SPECIFIC page titles, meta descriptions, and H1 tags from the actual content.
+- Compare findings to INDUSTRY BEST PRACTICES with named examples of B2B SaaS companies doing it well.
+- For each recommendation, include BEFORE/AFTER examples showing what the fix looks like.
+- Write analysis_summary as a strategic narrative for a CMO, not a list of technical findings.
+
 Provide a JSON response with this structure:
 {{
     "overall_score": <number 0-100>,
     "score_items": [
-        {{"name": "Title Tag Optimization", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "..."}},
-        {{"name": "Meta Description Quality", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}},
-        {{"name": "Header Structure (H1-H3)", "score": <0-100>, "max_score": 100, "weight": 1.2, "notes": "..."}},
-        {{"name": "Internal Linking", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}},
-        {{"name": "Schema Markup", "score": <0-100>, "max_score": 100, "weight": 0.8, "notes": "..."}},
-        {{"name": "Page Speed Indicators", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}},
-        {{"name": "Mobile Optimization", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "..."}},
-        {{"name": "Content Depth & Quality", "score": <0-100>, "max_score": 100, "weight": 1.3, "notes": "..."}}
+        {{"name": "Title Tag Optimization", "score": <0-100>, "max_score": 100, "weight": 1.5, "notes": "Quote actual title tags and assess keyword targeting"}},
+        {{"name": "Meta Description Quality", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Quote actual meta descriptions and assess click appeal"}},
+        {{"name": "Header Structure (H1-H3)", "score": <0-100>, "max_score": 100, "weight": 1.2, "notes": "Assess content hierarchy and keyword integration"}},
+        {{"name": "Internal Linking", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Assess link equity distribution and navigation structure"}},
+        {{"name": "Schema Markup", "score": <0-100>, "max_score": 100, "weight": 0.8, "notes": "Assess structured data implementation for rich results"}},
+        {{"name": "Page Speed Indicators", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Assess load time impact on rankings and UX"}},
+        {{"name": "Mobile Optimization", "score": <0-100>, "max_score": 100, "weight": 1.0, "notes": "Assess mobile-first indexing readiness"}},
+        {{"name": "Content Depth & Quality", "score": <0-100>, "max_score": 100, "weight": 1.3, "notes": "Assess content comprehensiveness for target keywords"}}
     ],
-    "strengths": ["list of 3-5 SEO strengths with specific evidence"],
-    "weaknesses": ["list of 3-5 SEO weaknesses with specific evidence"],
+    "strengths": ["3-5 SEO strengths with specific evidence and quoted content"],
+    "weaknesses": ["3-5 SEO weaknesses with business impact estimates"],
     "recommendations": [
         {{
-            "issue": "specific issue found",
+            "issue": "specific issue found with quoted evidence",
             "recommendation": "what to do about it",
-            "current_state": "what it currently looks like",
-            "best_practice": "industry standard",
+            "business_impact": "estimated effect on organic traffic/rankings (e.g., 'likely suppressing organic CTR by 15-25%')",
+            "before_example": "current title/meta/content quoted from the site",
+            "after_example": "suggested replacement with rationale",
+            "current_state": "description of current state",
+            "best_practice": "named example of a B2B SaaS company doing this well",
             "impact": "High|Medium|Low",
             "effort": "High|Medium|Low",
             "implementation_steps": ["step 1", "step 2", "step 3"],
-            "success_metrics": ["metric 1"],
-            "timeline": "1-2 weeks"
+            "success_metrics": ["metric to track improvement"],
+            "timeline": "timeframe"
         }}
     ],
-    "analysis_summary": "2-3 paragraph analysis of the site's SEO performance"
+    "analysis_summary": "3-4 paragraph strategic narrative about the site's SEO performance, written for a CMO. Frame the core SEO problem, explain what it's costing in organic visibility, and outline what an optimized SEO strategy would accomplish."
 }}
 
-Generate 5-8 specific, actionable recommendations based on actual issues found."""
+Generate 5-8 specific, actionable recommendations with quoted before/after examples from the actual content."""
 
 
 class SEOAgent(BaseAgent):
@@ -74,7 +84,7 @@ class SEOAgent(BaseAgent):
         if mock_data:
             site_data += f"\n\nSEO METRICS (estimated):\n{json.dumps(mock_data, indent=2)}"
 
-        await self.update_progress(50, "Analyzing with AI")
+        await self.update_progress(45, "Building SEO analysis prompt")
 
         prompt = SEO_PROMPT.format(
             company_url=self.context.company_url,
@@ -82,8 +92,12 @@ class SEOAgent(BaseAgent):
             site_data=site_data,
         )
 
+        await self.update_progress(50, "Sending to AI for SEO analysis")
+
         try:
             response = await self.call_llm_json(prompt, system=SEO_SYSTEM)
+
+            await self.update_progress(75, "Parsing AI response")
             result = self.parse_json(response)
 
             if not result:
