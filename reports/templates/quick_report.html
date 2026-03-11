@@ -897,7 +897,7 @@
         <li><a href="#priority-matrix">Strategic Priority Matrix</a></li>
         {% if company_profile %}<li><a href="#company-profile">Company Profile</a></li>{% endif %}
         {% for module in modules %}
-        {% if module.agent_name in ['messaging', 'competitor', 'conversion'] and module.items %}
+        {% if module.agent_name in ['messaging', 'competitor', 'conversion', 'aeo'] and module.items %}
         <li><a href="#module-{{ module.agent_name }}">{{ module.name }}</a></li>
         {% endif %}
         {% endfor %}
@@ -1108,7 +1108,7 @@
 
 <!-- ════════════════════════════════════════════════════════ MODULE DEEP DIVES -->
 {% for module in modules %}
-{% if module.agent_name in ['messaging', 'competitor', 'conversion'] and module.items %}
+{% if module.agent_name in ['messaging', 'competitor', 'conversion', 'aeo'] and module.items %}
 <div class="module-section" id="module-{{ module.agent_name }}">
     <div class="section-label">{{ module.name }}</div>
     <div class="module-header-bar">
@@ -1332,6 +1332,169 @@
             </div>
             {% endif %}
         </div>
+        {% endif %}
+    {% endif %}
+
+    {# ── AEO: Readiness Dashboard + Citation Readiness + Content Gaps ── #}
+    {% if module.agent_name == 'aeo' %}
+        {% set checks = module.extra_data.get('automated_checks', {}) %}
+        {% if checks %}
+        <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin:1rem 0 0.5rem;">AEO Readiness Checks</div>
+        <div class="grid-2" style="gap:0.5rem; margin-bottom:1rem;">
+            {# Schema Markup #}
+            {% set schema = checks.get('schema_markup', {}) %}
+            <div class="card" style="padding:1rem 1.25rem; border-left:3px solid {% if schema.get('pass') %}var(--green){% else %}var(--red){% endif %};">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                    <div style="font-weight:600; font-size:0.88rem;">JSON-LD Schema</div>
+                    <span class="badge-sm" style="background:{% if schema.get('pass') %}var(--green){% else %}var(--red){% endif %}; color:white;">{% if schema.get('pass') %}PASS{% else %}FAIL{% endif %}</span>
+                </div>
+                <div style="font-size:0.82rem; color:var(--text-mid);">{{ schema.get('pages_with_json_ld', 0) }}/{{ schema.get('total_pages', 0) }} pages have JSON-LD</div>
+                {% if schema.get('schema_types_found') %}
+                <div style="font-size:0.78rem; color:var(--text-dim); margin-top:0.25rem;">Types: {{ schema.schema_types_found | join(', ') }}</div>
+                {% endif %}
+                {% if schema.get('missing_recommended_types') %}
+                <div style="font-size:0.78rem; color:var(--yellow); margin-top:0.25rem;">Missing: {{ schema.missing_recommended_types | join(', ') }}</div>
+                {% endif %}
+            </div>
+
+            {# Table of Contents #}
+            {% set toc = checks.get('table_of_contents', {}) %}
+            <div class="card" style="padding:1rem 1.25rem; border-left:3px solid {% if toc.get('pass') %}var(--green){% else %}var(--red){% endif %};">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                    <div style="font-weight:600; font-size:0.88rem;">Table of Contents</div>
+                    <span class="badge-sm" style="background:{% if toc.get('pass') %}var(--green){% else %}var(--red){% endif %}; color:white;">{% if toc.get('pass') %}PASS{% else %}FAIL{% endif %}</span>
+                </div>
+                <div style="font-size:0.82rem; color:var(--text-mid);">{{ toc.get('blog_pages_with_toc', 0) }}/{{ toc.get('total_blog_pages', 0) }} blog pages have ToC</div>
+                <div style="font-size:0.78rem; color:var(--text-dim); margin-top:0.25rem;">Blog posts with ToC see 59% more AI-sourced traffic</div>
+            </div>
+
+            {# Alt Text Coverage #}
+            {% set alt = checks.get('alt_text', {}) %}
+            <div class="card" style="padding:1rem 1.25rem; border-left:3px solid {% if alt.get('pass') %}var(--green){% else %}var(--red){% endif %};">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                    <div style="font-weight:600; font-size:0.88rem;">Image Alt Text</div>
+                    <span class="badge-sm" style="background:{% if alt.get('pass') %}var(--green){% else %}var(--red){% endif %}; color:white;">{% if alt.get('pass') %}PASS{% else %}FAIL{% endif %}</span>
+                </div>
+                <div style="font-size:0.82rem; color:var(--text-mid);">{{ alt.get('images_with_alt', 0) }}/{{ alt.get('total_images', 0) }} images have alt text ({{ alt.get('coverage_percentage', 0) }}%)</div>
+                <div style="font-size:0.78rem; color:var(--text-dim); margin-top:0.25rem;">{{ alt.get('images_with_descriptive_alt', 0) }} have descriptive alt text</div>
+            </div>
+
+            {# Question-Based Headings #}
+            {% set qh = checks.get('question_headings', {}) %}
+            <div class="card" style="padding:1rem 1.25rem; border-left:3px solid {% if qh.get('pass') %}var(--green){% else %}var(--red){% endif %};">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                    <div style="font-weight:600; font-size:0.88rem;">Question Headings</div>
+                    <span class="badge-sm" style="background:{% if qh.get('pass') %}var(--green){% else %}var(--red){% endif %}; color:white;">{% if qh.get('pass') %}PASS{% else %}FAIL{% endif %}</span>
+                </div>
+                <div style="font-size:0.82rem; color:var(--text-mid);">{{ qh.get('question_headings_count', 0) }}/{{ qh.get('total_headings', 0) }} headings are questions ({{ qh.get('percentage', 0) }}%)</div>
+                {% if qh.get('examples') %}
+                <div style="font-size:0.78rem; color:var(--text-dim); margin-top:0.25rem;">e.g., "{{ qh.examples[0] }}"</div>
+                {% endif %}
+            </div>
+
+            {# FAQ Sections #}
+            {% set faq = checks.get('faq_sections', {}) %}
+            <div class="card" style="padding:1rem 1.25rem; border-left:3px solid {% if faq.get('pass') %}var(--green){% else %}var(--red){% endif %};">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                    <div style="font-weight:600; font-size:0.88rem;">FAQ Sections</div>
+                    <span class="badge-sm" style="background:{% if faq.get('pass') %}var(--green){% else %}var(--red){% endif %}; color:white;">{% if faq.get('pass') %}PASS{% else %}FAIL{% endif %}</span>
+                </div>
+                <div style="font-size:0.82rem; color:var(--text-mid);">{{ faq.get('pages_with_faq', 0) }} pages with FAQ sections</div>
+                <div style="font-size:0.78rem; color:var(--text-dim); margin-top:0.25rem;">FAQ schema: {% if faq.get('has_faq_schema') %}<span style="color:var(--green);">Present</span>{% else %}<span style="color:var(--red);">Missing</span>{% endif %}</div>
+            </div>
+
+            {# Meta Descriptions #}
+            {% set meta = checks.get('meta_descriptions', {}) %}
+            <div class="card" style="padding:1rem 1.25rem; border-left:3px solid {% if meta.get('pass') %}var(--green){% else %}var(--red){% endif %};">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                    <div style="font-weight:600; font-size:0.88rem;">Meta Descriptions</div>
+                    <span class="badge-sm" style="background:{% if meta.get('pass') %}var(--green){% else %}var(--red){% endif %}; color:white;">{% if meta.get('pass') %}PASS{% else %}FAIL{% endif %}</span>
+                </div>
+                <div style="font-size:0.82rem; color:var(--text-mid);">{{ meta.get('pages_with_meta', 0) }}/{{ meta.get('total_pages', 0) }} pages have meta descriptions ({{ meta.get('coverage_percentage', 0) }}%)</div>
+                <div style="font-size:0.78rem; color:var(--text-dim); margin-top:0.25rem;">{{ meta.get('pages_with_good_length', 0) }} have optimal length (120-160 chars)</div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# Citation Readiness Assessment #}
+        {% set citation = module.extra_data.get('citation_readiness', {}) %}
+        {% if citation and citation.get('analysis') %}
+        <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin:1.5rem 0 0.5rem;">Citation Readiness</div>
+        <div class="card" style="border-left:3px solid var(--accent); padding:1rem 1.25rem;">
+            {% if citation.get('score') is not none %}
+            <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+                <div style="font-size:1.5rem; font-weight:700; color:{{ citation.get('score', 0) | score_color }};">{{ citation.score }}/100</div>
+                <div style="font-size:0.82rem; color:var(--text-dim);">Citation Readiness Score</div>
+            </div>
+            {% endif %}
+            <div style="font-size:0.88rem; line-height:1.6; white-space:pre-line; color:var(--text-mid);">{{ citation.analysis }}</div>
+            {% if citation.get('top_opportunities') %}
+            <div style="margin-top:0.75rem;">
+                <div style="font-size:0.78rem; font-weight:600; color:var(--accent); margin-bottom:0.4rem;">Top Citation Opportunities</div>
+                {% for opp in citation.top_opportunities[:5] %}
+                <div style="padding:0.3rem 0; border-bottom:1px solid var(--border); font-size:0.85rem;">{{ opp }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {# Brand Authority Assessment #}
+        {% set brand_auth = module.extra_data.get('brand_authority_assessment', '') %}
+        {% if brand_auth %}
+        <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin:1.5rem 0 0.5rem;">Brand Authority for AI Visibility</div>
+        <div class="card" style="padding:1rem 1.25rem;">
+            <div style="font-size:0.88rem; line-height:1.6; white-space:pre-line; color:var(--text-mid);">{{ brand_auth }}</div>
+            <div style="margin-top:0.75rem; padding:0.75rem; background:var(--bg-card); border-radius:6px; border:1px solid var(--border);">
+                <div style="font-size:0.78rem; font-weight:600; color:var(--text-dim); margin-bottom:0.3rem;">Key Research Finding</div>
+                <div style="font-size:0.82rem; color:var(--text-mid);">Brand mentions in LLM citations have a <strong style="color:var(--accent);">0.664 correlation</strong> with AI overview appearances — the #1 factor. 95% of mid-funnel search sources are third-party websites.</div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# Content Gap Map #}
+        {% set gaps = module.extra_data.get('content_gaps', []) %}
+        {% if gaps %}
+        <div style="font-size:0.7rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin:1.5rem 0 0.5rem;">Content Gap Map — Suggested AEO Pages</div>
+        <div class="card" style="overflow-x:auto; padding:0.75rem;">
+            <table class="comp-table">
+                <thead>
+                    <tr>
+                        <th>Buyer Question</th>
+                        <th>Suggested Page Title</th>
+                        <th>Priority</th>
+                        <th>Estimated Impact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for gap in gaps[:8] %}
+                    <tr>
+                        <td style="font-size:0.82rem;">{{ gap.get('question', '') }}</td>
+                        <td style="font-weight:600; font-size:0.82rem;">{{ gap.get('suggested_page_title', '') }}<br><span style="font-size:0.75rem; color:var(--text-dim);">{{ gap.get('suggested_url_slug', '') }}</span></td>
+                        <td class="overlap-{{ gap.get('priority', 'Medium') | lower }}">{{ gap.get('priority', '?') }}</td>
+                        <td style="font-size:0.82rem; color:var(--text-mid);">{{ gap.get('estimated_impact', '') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% for gap in gaps[:3] %}
+        {% if gap.get('content_outline') %}
+        <div class="card" style="margin-top:0.5rem; padding:0.75rem 1rem;">
+            <div style="font-weight:600; font-size:0.85rem; margin-bottom:0.3rem;">{{ gap.get('suggested_page_title', 'Suggested Page') }}</div>
+            <div style="font-size:0.78rem; color:var(--text-dim); margin-bottom:0.4rem;">{{ gap.get('suggested_url_slug', '') }}</div>
+            {% if gap.content_outline is string %}
+            <div style="font-size:0.82rem; color:var(--text-mid);">{{ gap.content_outline }}</div>
+            {% else %}
+            <ul style="font-size:0.82rem; color:var(--text-mid); padding-left:1.25rem; margin:0;">
+                {% for item in gap.content_outline %}
+                <li style="margin-bottom:0.2rem;">{{ item }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
         {% endif %}
     {% endif %}
 

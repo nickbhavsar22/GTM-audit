@@ -8,9 +8,9 @@ from agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
-SOCIAL_SYSTEM = """You are a B2B content and demand generation strategist. You evaluate content strategy not as a vanity metric exercise but as a demand generation engine assessment. You analyze whether the company's content and social presence is actually driving pipeline — attracting the right audience, nurturing consideration, and supporting the sales process. You name specific content gaps and compare to best-in-class B2B SaaS content programs. Your analysis reads like strategic advice from a content marketing consultant."""
+SOCIAL_SYSTEM = """You are a B2B content and demand generation strategist. You evaluate content strategy not as a vanity metric exercise but as a demand generation engine assessment. You analyze whether the company's content and social presence is actually driving pipeline — attracting the right audience, nurturing consideration, and supporting the sales process. You name specific content gaps and compare to best-in-class B2B content programs. Your analysis reads like strategic advice from a content marketing consultant."""
 
-SOCIAL_PROMPT = """Perform a comprehensive content strategy and digital presence audit for this B2B SaaS company.
+SOCIAL_PROMPT = """Perform a comprehensive content strategy and digital presence audit for this company.
 
 Website: {company_url}
 Company Name: {company_name}
@@ -28,7 +28,7 @@ CRITICAL INSTRUCTIONS:
 - For every finding, explain the BUSINESS IMPACT on demand generation and pipeline (e.g., "Having no blog content targeting comparison keywords means {company_name} is invisible during the evaluation phase when buyers are choosing between solutions").
 - Assess content-market fit: does the content match what their target buyers actually search for?
 - Evaluate the content funnel: is there content for awareness, consideration, AND decision stages?
-- Compare to BEST PRACTICES with named examples of B2B SaaS companies with strong content engines.
+- Compare to BEST PRACTICES with named examples of companies in the same industry with strong content engines.
 - Write analysis_summary as a strategic narrative about the company's content-driven demand generation.
 
 Provide a JSON response:
@@ -66,7 +66,7 @@ Provide a JSON response:
             "before_example": "current state of content strategy",
             "after_example": "what improved content strategy looks like",
             "current_state": "current state",
-            "best_practice": "named example of a B2B SaaS company doing this well",
+            "best_practice": "named example of a company doing this well",
             "impact": "High|Medium|Low",
             "effort": "High|Medium|Low",
             "implementation_steps": ["step 1", "step 2"],
@@ -87,6 +87,9 @@ class SocialAgent(BaseAgent):
 
     async def run(self) -> dict[str, Any]:
         await self.update_progress(10, "Detecting social media presence")
+
+        if not self.has_sufficient_data():
+            return self._insufficient_data_result("No website content available for social media analysis.")
 
         social_links = self._extract_social_links()
         content_pages = self._extract_content_pages()

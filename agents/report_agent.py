@@ -6,7 +6,7 @@ import secrets
 from datetime import datetime
 from typing import Any
 
-from agents.base_agent import BaseAgent
+from agents.base_agent import ANTI_HALLUCINATION_INSTRUCTION, BaseAgent
 from config.constants import AGENT_DISPLAY_NAMES, AgentName, score_to_grade
 from reports.scoring import (
     AuditReport,
@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 # Agents that produce scored modules (not web_scraper or company_research)
 SCORED_AGENTS = [
     AgentName.SEO,
+    AgentName.AEO,
     AgentName.MESSAGING,
     AgentName.VISUAL_DESIGN,
     AgentName.COMPETITOR,
@@ -31,9 +32,10 @@ SCORED_AGENTS = [
     AgentName.ICP,
 ]
 
-# Industry median benchmarks for score context (B2B SaaS)
+# Industry median benchmarks for score context
 INDUSTRY_BENCHMARKS = {
     "seo": 68,
+    "aeo": 45,
     "messaging": 62,
     "visual_design": 65,
     "competitor": 60,
@@ -257,14 +259,29 @@ class ReportAgent(BaseAgent):
             if m.items:
                 benchmark_ctx = ""
                 if m.benchmark:
-                    benchmark_ctx = f" (B2B SaaS median: {m.benchmark}%)"
+                    benchmark_ctx = f" (industry median: {m.benchmark}%)"
                 module_summaries.append(
                     f"- {m.name}: {m.percentage:.0f}%{benchmark_ctx} — {m.analysis_text[:300]}"
                 )
 
         company_context = ""
         if company_data and company_data.get("status") == "completed":
-            company_context = company_data.get("analysis_text", "")[:1500]
+            rd = company_data.get("result_data", {})
+            company_context = (
+                f"Company: {rd.get('company_name', report.company_name)}\n"
+                f"Industry: {rd.get('industry', 'Unknown')}\n"
+                f"Category: {rd.get('category', 'Unknown')}\n"
+                f"Description: {rd.get('description', 'Unknown')}\n"
+                f"Value Prop: {rd.get('value_proposition', 'Unknown')}\n"
+            )
+
+        # Use competitor agent's data for executive narrative
+        competitor_analysis = self.context.get_analysis("competitor")
+        if competitor_analysis and competitor_analysis.get("status") == "completed":
+            comp_rd = competitor_analysis.get("result_data", {})
+            comp_names = [c.get("name", "") for c in comp_rd.get("competitors", []) if c.get("name")]
+            if comp_names:
+                company_context += f"Competitors: {', '.join(comp_names)}\n"
 
         quick_wins = report.get_quick_wins(3)
         qw_text = "\n".join(f"- {r.area}: {r.issue}" for r in quick_wins) if quick_wins else "None identified"
@@ -306,12 +323,12 @@ RULES:
 Do NOT start with "Executive Summary" or any header. Write the paragraphs directly."""
 
         system = (
-            "You are a senior B2B marketing consultant with 20+ years experience writing an executive "
+            "You are a senior B2B marketing consultant writing an executive "
             "summary for a premium GTM diagnostic audit. Write like someone who has run marketing at a "
             "company like this, not someone who crawled their website. Be direct and specific. Avoid "
             "generic consulting language. The buyer is a sophisticated CMO evaluating whether this "
             "consultant understands their business."
-        )
+        ) + ANTI_HALLUCINATION_INSTRUCTION
 
         try:
             return await self.call_llm(prompt, system=system)
@@ -344,8 +361,15 @@ Do NOT start with "Executive Summary" or any header. Write the paragraphs direct
                 f"Category: {rd.get('category', 'Unknown')}\n"
                 f"Target: {rd.get('target_market', 'Unknown')}\n"
                 f"Value Prop: {rd.get('value_proposition', 'Unknown')}\n"
-                f"Competitors: {', '.join(rd.get('competitive_context', {}).get('likely_competitors', []))}\n"
             )
+
+        # Use competitor agent's rigorous analysis, not company_research's list
+        competitor_analysis = self.context.get_analysis("competitor")
+        if competitor_analysis and competitor_analysis.get("status") == "completed":
+            comp_rd = competitor_analysis.get("result_data", {})
+            comp_names = [c.get("name", "") for c in comp_rd.get("competitors", []) if c.get("name")]
+            if comp_names:
+                company_context += f"Competitors: {', '.join(comp_names)}\n"
 
         prompt = f"""Write a strategic diagnosis for {report.company_name}'s go-to-market execution.
 
@@ -361,7 +385,7 @@ This is 3-5 paragraphs of narrative analysis that could ONLY apply to {report.co
 - Connect the tactical findings to a coherent strategic problem
 - Identify the ROOT CAUSE that explains multiple symptoms
 - Use {report.company_name}'s own language, product names, and market context
-- Write in the voice of a senior B2B marketing consultant with 20+ years experience
+- Write in the voice of a senior B2B marketing consultant who understands this company's specific market
 - Avoid generic consulting language ("leverage", "optimize", "synergize")
 - Be direct. Every paragraph must pass the test: "Could this have been written about a different company?" If yes, rewrite it.
 - No bullet points. Prose only.
@@ -369,10 +393,10 @@ This is 3-5 paragraphs of narrative analysis that could ONLY apply to {report.co
 
         system = (
             "You are a senior B2B marketing consultant writing a strategic diagnosis. "
-            "You've done 200+ audits for B2B SaaS companies. Write with authority and specificity. "
+            "Write with authority and specificity. "
             "Your diagnosis should feel like it was written by someone who has run marketing at a "
             "company like this one."
-        )
+        ) + ANTI_HALLUCINATION_INSTRUCTION
 
         try:
             return await self.call_llm(prompt, system=system)
@@ -445,7 +469,7 @@ RULES:
         system = (
             "You are a senior B2B marketing consultant analyzing the buyer journey. "
             "Write with deep understanding of how B2B buyers actually research and purchase."
-        )
+        ) + ANTI_HALLUCINATION_INSTRUCTION
 
         try:
             return await self.call_llm(prompt, system=system)
@@ -513,7 +537,8 @@ RULES:
 - Label ALL numbers as estimates
 - Be conservative — it's better to under-promise
 - Show your reasoning in the methodology note
-- Use ranges where appropriate (e.g., "$50K-$100K")"""
+- Use ranges where appropriate (e.g., "$50K-$100K")
+- CRITICAL: You do NOT have actual traffic data. For the baseline, clearly state that traffic data is unavailable and base estimates on industry benchmarks for this company's size/type. Do NOT present fabricated traffic numbers as measured data."""
 
         try:
             response = await self.call_llm_json(prompt)
@@ -538,7 +563,7 @@ RULES:
         if not categories:
             return []
 
-        prompt = f"""For each category below, provide one brief example of a B2B SaaS company that executes well in this area and explain why (2-3 sentences each). Return ONLY valid JSON.
+        prompt = f"""For each category below, provide one brief example of a company in the same or similar industry that executes well in this area and explain why (2-3 sentences each). Return ONLY valid JSON.
 
 CATEGORIES:
 {chr(10).join(categories)}
@@ -554,7 +579,7 @@ Return this JSON:
     }}
 ]
 
-Use real, named B2B SaaS companies that a CMO would recognize. These should be companies in adjacent or comparable markets."""
+Use real, named companies that a CMO would recognize. Match the industry of the company being audited."""
 
         try:
             response = await self.call_llm_json(prompt)

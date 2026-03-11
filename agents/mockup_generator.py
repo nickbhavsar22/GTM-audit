@@ -25,7 +25,7 @@ class MockupGenerator:
         suggested_h1: str,
         suggested_subheadline: str = "",
     ) -> str:
-        """Generate HTML that shows the suggested headline in a modern B2B SaaS style."""
+        """Generate HTML that shows the suggested headline in a modern B2B style."""
         return f"""<!DOCTYPE html>
 <html>
 <head>

@@ -4,15 +4,17 @@ import json
 import logging
 from typing import Any
 
-from agents.base_agent import BaseAgent
+from agents.base_agent import ANTI_HALLUCINATION_INSTRUCTION, BaseAgent
 
 logger = logging.getLogger(__name__)
 
-COMPETITOR_SYSTEM = """You are a senior competitive intelligence strategist who has mapped competitive landscapes for 100+ B2B SaaS companies. You think like a PE firm doing due diligence — you assess competitive moats, identify positioning gaps, and explain exactly where the company is winning and losing deals. You name real companies, cite specific positioning statements, and explain what each competitor's existence means for the target company's GTM strategy. Your analysis reads like a $15K competitive brief, not a Google search summary.
+COMPETITOR_SYSTEM = """You are a senior competitive intelligence strategist. You identify competitors by analyzing what the company actually does, who they serve, and who competes for the same buyers and budget. You think like a PE firm doing due diligence — you assess competitive moats, identify positioning gaps, and explain exactly where the company is winning and losing deals. You name real companies, cite specific positioning statements, and explain what each competitor's existence means for the target company's GTM strategy.
 
-You are a senior B2B marketing consultant. Write findings in terms of pipeline, revenue, and buyer behavior — not technical implementation details. Be specific to this company. Avoid generic consulting language like 'leverage' and 'optimize.' Conservative and transparent beats optimistic and unsupported. Show your calculation for any projected outcome."""
+You are a senior B2B marketing consultant. Write findings in terms of pipeline, revenue, and buyer behavior — not technical implementation details. Be specific to this company. Avoid generic consulting language like 'leverage' and 'optimize.' Conservative and transparent beats optimistic and unsupported. Show your calculation for any projected outcome.
 
-COMPETITOR_PROMPT = """Perform a comprehensive competitive intelligence analysis for this B2B SaaS company. This section of the GTM audit should give the reader a complete picture of their competitive landscape and strategic positioning.
+COMPETITOR-SPECIFIC OVERRIDE: For this agent ONLY, you ARE allowed to name competitors using your industry knowledge — but ONLY after first identifying the company's specific industry from the website content. You MUST identify the correct industry FIRST, then name competitors in THAT industry. NEVER default to generic CRM/SaaS companies (Salesforce, HubSpot, Pipedrive, Zoho) unless the target company is actually a CRM."""
+
+COMPETITOR_PROMPT = """Perform a comprehensive competitive intelligence analysis for this company. This section of the GTM audit should give the reader a complete picture of their competitive landscape and strategic positioning.
 
 Website: {company_url}
 Company Name: {company_name}
@@ -38,7 +40,10 @@ YOUR ANALYSIS MUST INCLUDE:
 6. **Win/Loss Indicators**: Based on positioning and messaging strength, where is {company_name} likely winning deals vs. losing them? What buyer segments are most/least contested?
 
 CRITICAL INSTRUCTIONS:
-- Name REAL competitors — don't use placeholders like "Competitor A". Use your knowledge of B2B SaaS markets.
+- FIRST identify the company's industry and market segment from the company profile. Then find competitors that operate in THAT specific space.
+- Name REAL competitors — don't use placeholders like "Competitor A". Use the company profile and website content to identify competitors in the SAME industry and market segment. Do NOT default to generic SaaS/CRM competitors like Salesforce or HubSpot unless the company actually competes with them.
+- You MUST identify the company's specific industry from the COMPANY PROFILE and WEBSITE CONTENT before selecting competitors. If the company is in financial compliance, name compliance competitors. If in marketing technology, name martech competitors. NEVER default to CRM companies (Salesforce, HubSpot, Pipedrive) unless the company is actually a CRM.
+- If you cannot determine the industry with confidence, state that explicitly and provide your best inference with reasoning.
 - For every finding, explain the BUSINESS IMPACT (e.g., "This positioning overlap means {company_name} likely loses 20-30% of evaluations where buyers see no differentiation").
 - Quote ACTUAL positioning language from {company_name}'s website and compare to how competitors frame similar capabilities.
 - Write analysis_summary as a strategic brief for a CEO, not a list of competitors.
@@ -119,6 +124,9 @@ class CompetitorAgent(BaseAgent):
 
     async def run(self) -> dict[str, Any]:
         await self.update_progress(10, "Gathering competitive context")
+
+        if not self.has_sufficient_data():
+            return self._insufficient_data_result("No website content available for competitive analysis.")
 
         content = self.get_all_pages_content(max_chars=15000)
 

@@ -69,6 +69,12 @@ class ProjectLead:
             logger.debug("SEOAgent not implemented yet")
 
         try:
+            from agents.aeo_agent import AEOAgent
+            classes.append(AEOAgent)
+        except ImportError:
+            logger.debug("AEOAgent not implemented yet")
+
+        try:
             from agents.messaging_agent import MessagingAgent
             classes.append(MessagingAgent)
         except ImportError:
@@ -176,6 +182,25 @@ class ProjectLead:
         if phase1:
             await self.run_phase("Crawling", phase1)
 
+        # Abort pipeline if scraper produced no usable data
+        scraper_result = self.context.get_analysis("web_scraper")
+        scraper_failed = (
+            not scraper_result
+            or scraper_result.get("status") == "failed"
+            or not self.context.pages
+        )
+        if scraper_failed:
+            logger.error(
+                f"Web scraper produced no usable data for {self.context.company_url}. "
+                f"Aborting downstream agents to prevent hallucinated results."
+            )
+            # Skip to report phase so it can generate an error report
+            phase_report = [n for n in ["report"] if n in registered]
+            if phase_report:
+                await self.run_phase("Reporting", phase_report)
+            logger.info("Audit pipeline aborted due to scraper failure")
+            return
+
         # Phase 1.5: Screenshot capture (depends on web_scraper)
         phase1_5 = [n for n in ["screenshot"] if n in registered]
         if phase1_5:
@@ -193,6 +218,7 @@ class ProjectLead:
                 "competitor",
                 "review_sentiment",
                 "seo",
+                "aeo",
                 "messaging",
                 "visual_design",
                 "conversion",

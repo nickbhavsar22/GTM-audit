@@ -5,15 +5,17 @@ import logging
 from typing import Any
 from urllib.parse import urlparse
 
-from agents.base_agent import BaseAgent
+from agents.base_agent import ANTI_HALLUCINATION_INSTRUCTION, BaseAgent
 
 logger = logging.getLogger(__name__)
 
-SEO_SYSTEM = """You are a senior SEO strategist who has audited 200+ B2B SaaS websites. You go beyond technical checklist items to explain the business impact of every finding — how each issue affects organic traffic, lead generation, and pipeline. You cite specific pages and tags from the actual content and compare to industry best practices with named examples. Your analysis reads like a $5K SEO audit from a top agency, not a Screaming Frog export.
+SEO_SYSTEM = """You are a senior SEO strategist specializing in B2B website audits. You go beyond technical checklist items to explain the business impact of every finding — how each issue affects organic traffic, lead generation, and pipeline. You cite specific pages and tags from the actual content and compare to industry best practices with named examples. Your analysis reads like a premium SEO audit, not a Screaming Frog export.
 
-You are a senior B2B marketing consultant. Write findings in terms of pipeline, revenue, and buyer behavior — not technical implementation details. Be specific to this company. Avoid generic consulting language like 'leverage' and 'optimize.' Conservative and transparent beats optimistic and unsupported. Show your calculation for any projected outcome."""
+You are a senior B2B marketing consultant. Write findings in terms of pipeline, revenue, and buyer behavior — not technical implementation details. Be specific to this company. Avoid generic consulting language like 'leverage' and 'optimize.' Conservative and transparent beats optimistic and unsupported. Show your calculation for any projected outcome.
 
-SEO_PROMPT = """Perform a comprehensive SEO and organic visibility audit for this B2B SaaS company's website.
+CRITICAL: You do NOT have access to actual traffic data, keyword rankings, domain authority scores, or backlink counts. Do NOT fabricate these metrics. Only assess what can be determined from the page content, structure, and metadata provided. If you would normally cite a traffic metric but have no data, write "Traffic data not available" instead.""" + ANTI_HALLUCINATION_INSTRUCTION
+
+SEO_PROMPT = """Perform a comprehensive SEO and organic visibility audit for this company's website.
 
 Website: {company_url}
 Pages Crawled: {pages_crawled}
@@ -22,9 +24,9 @@ WEBSITE DATA:
 {site_data}
 
 CRITICAL INSTRUCTIONS:
-- For every finding, explain the BUSINESS IMPACT — not just what's wrong, but what it's likely costing in organic traffic and leads. Use directional estimates (e.g., "missing meta descriptions on 6/10 pages likely reduces CTR by 20-30% on those pages").
+- For every finding, explain the BUSINESS IMPACT — not just what's wrong, but what it means for organic visibility and lead generation. Reference the specific pages affected and the nature of the issue. Do NOT estimate traffic numbers, visitor counts, domain authority, or backlink counts — these require actual analytics data we don't have. You CAN reference relative impact (e.g., "missing meta descriptions on 6/10 pages likely reduces CTR on those pages").
 - Quote SPECIFIC page titles, meta descriptions, and H1 tags from the actual content.
-- Compare findings to INDUSTRY BEST PRACTICES with named examples of B2B SaaS companies doing it well.
+- Compare findings to INDUSTRY BEST PRACTICES with named examples of companies in the same industry doing it well.
 - For each recommendation, include BEFORE/AFTER examples showing what the fix looks like.
 - Write analysis_summary as a strategic narrative for a CMO, not a list of technical findings.
 
@@ -51,7 +53,7 @@ Provide a JSON response with this structure:
             "before_example": "current title/meta/content quoted from the site",
             "after_example": "suggested replacement with rationale",
             "current_state": "description of current state",
-            "best_practice": "named example of a B2B SaaS company doing this well",
+            "best_practice": "named example of a company in the same industry doing this well",
             "impact": "High|Medium|Low",
             "effort": "High|Medium|Low",
             "implementation_steps": ["step 1", "step 2", "step 3"],
@@ -74,6 +76,9 @@ class SEOAgent(BaseAgent):
         """Analyze the website's SEO performance."""
         await self.update_progress(10, "Extracting SEO data from pages")
 
+        if not self.has_sufficient_data():
+            return self._insufficient_data_result("No website content available for SEO analysis.")
+
         # Build SEO-focused data from scraped pages
         site_data = self._extract_seo_data()
 
@@ -81,7 +86,7 @@ class SEOAgent(BaseAgent):
 
         # Get mock SEMrush data if available
         mock_data = await self._get_mock_seo_data()
-        if mock_data:
+        if mock_data and mock_data.get("_source") != "unavailable":
             site_data += f"\n\nSEO METRICS (estimated):\n{json.dumps(mock_data, indent=2)}"
 
         await self.update_progress(45, "Building SEO analysis prompt")
@@ -125,12 +130,15 @@ class SEOAgent(BaseAgent):
         """Extract SEO-relevant data from all scraped pages."""
         lines = []
         for url, page in self.context.pages.items():
+            quality = page.extraction_quality()
             lines.append(f"\n--- PAGE: {url} ---")
+            if quality == "LOW":
+                lines.append("[NOTE: Extraction confidence is LOW for this page. Missing fields may reflect extraction limitations, not actual site issues.]")
             lines.append(f"Title: {page.title}")
             lines.append(f"Meta Description: {page.meta_description}")
-            lines.append(f"H1 Tags: {', '.join(page.h1_tags) or 'NONE'}")
-            lines.append(f"H2 Tags: {', '.join(page.h2_tags[:5]) or 'NONE'}")
-            lines.append(f"H3 Tags: {', '.join(page.h3_tags[:3]) or 'NONE'}")
+            lines.append(f"H1 Tags: {', '.join(page.h1_tags) if page.h1_tags else '[Not extracted — do NOT assume missing from page]'}")
+            lines.append(f"H2 Tags: {', '.join(page.h2_tags[:5]) if page.h2_tags else '[Not extracted — do NOT assume missing from page]'}")
+            lines.append(f"H3 Tags: {', '.join(page.h3_tags[:3]) if page.h3_tags else '[Not extracted — do NOT assume missing from page]'}")
             lines.append(f"Load Time: {page.load_time:.2f}s")
             lines.append(f"Internal Links: {len(page.internal_links)}")
             lines.append(f"External Links: {len(page.external_links)}")

@@ -4,15 +4,15 @@ import json
 import logging
 from typing import Any
 
-from agents.base_agent import BaseAgent
+from agents.base_agent import ANTI_HALLUCINATION_INSTRUCTION, BaseAgent
 
 logger = logging.getLogger(__name__)
 
-CRO_SYSTEM = """You are a senior B2B SaaS conversion strategist who has optimized funnels for 100+ SaaS companies. You think like a revenue operations leader — every page is either moving buyers toward a decision or losing them. You map the actual buyer journey, identify exactly where pipeline leaks occur, and provide specific fixes with estimated revenue impact. Your analysis reads like a conversion audit from a $10K consultant, not a CRO checklist.
+CRO_SYSTEM = """You are a senior B2B conversion strategist. You think like a revenue operations leader — every page is either moving buyers toward a decision or losing them. You map the actual buyer journey, identify exactly where pipeline leaks occur, and provide specific fixes with estimated revenue impact. Your analysis reads like a premium conversion audit, not a CRO checklist.
 
-You are a senior B2B marketing consultant. Write findings in terms of pipeline, revenue, and buyer behavior — not technical implementation details. Be specific to this company. Avoid generic consulting language like 'leverage' and 'optimize.' Conservative and transparent beats optimistic and unsupported. Show your calculation for any projected outcome."""
+You are a senior B2B marketing consultant. Write findings in terms of pipeline, revenue, and buyer behavior — not technical implementation details. Be specific to this company. Avoid generic consulting language like 'leverage' and 'optimize.' Conservative and transparent beats optimistic and unsupported. Show your calculation for any projected outcome.""" + ANTI_HALLUCINATION_INSTRUCTION
 
-CRO_PROMPT = """Perform a comprehensive conversion and buyer journey audit for this B2B SaaS website. This is a critical section of a premium GTM audit report.
+CRO_PROMPT = """Perform a comprehensive conversion and buyer journey audit for this company's website. This is a critical section of a premium GTM audit report.
 
 Website: {company_url}
 
@@ -156,6 +156,9 @@ class ConversionAgent(BaseAgent):
     async def run(self) -> dict[str, Any]:
         await self.update_progress(10, "Mapping conversion elements")
 
+        if not self.has_sufficient_data():
+            return self._insufficient_data_result("No website content available for conversion analysis.")
+
         site_structure = self._extract_site_structure()
         ctas = self._extract_all_ctas()
         forms = self._extract_all_forms()
@@ -288,8 +291,11 @@ class ConversionAgent(BaseAgent):
         for pt in priority:
             pages = self.context.get_pages_by_type(pt)
             for page in pages[:2]:
+                quality = page.extraction_quality()
                 lines.append(f"\n--- {pt.upper()}: {page.url} ---")
-                lines.append(f"H1: {', '.join(page.h1_tags) or 'NONE'}")
+                if quality == "LOW":
+                    lines.append("[NOTE: Extraction confidence LOW — missing fields may reflect extraction limitations, not actual site issues.]")
+                lines.append(f"H1: {', '.join(page.h1_tags) if page.h1_tags else '[Not extracted — do NOT assume missing from page]'}")
                 lines.append(f"Content: {page.raw_text[:2000]}")
         return "\n".join(lines)[:15000]
 

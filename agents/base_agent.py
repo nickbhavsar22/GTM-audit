@@ -12,6 +12,24 @@ from agents.message_bus import AgentMessage, MessageBus, MessageType
 
 logger = logging.getLogger(__name__)
 
+ANTI_HALLUCINATION_INSTRUCTION = """
+ACCURACY GUARDRAILS — MANDATORY:
+- Only cite metrics, traffic numbers, review counts, or competitor names if they appear in the PROVIDED DATA above.
+- If data is insufficient to assess a dimension, state "Insufficient data to assess" rather than guessing.
+- Identify the company's actual industry from their website content. Do not default to "SaaS", "CRM", "software", or "consulting" unless the site explicitly describes itself that way.
+- Do NOT fabricate or estimate ANY of the following unless the numbers appear in the provided data:
+  * Monthly traffic / visitor counts / organic search volume
+  * Domain authority / page authority / link metrics
+  * Backlink counts / referring domains
+  * Keyword rankings / keyword counts
+  * Review counts / star ratings
+  * Revenue / ARR / funding amounts
+  * Customer counts (unless stated on site)
+- If you need to reference a metric category and no data is available, write "Data not available" instead of estimating.
+- Do NOT name competitors unless they are: (a) mentioned on the website, OR (b) you were explicitly provided competitor data in the input.
+- When the provided data contains [Not extracted] markers, do NOT assume the element is missing from the page — it may be an extraction limitation.
+"""
+
 
 class BaseAgent(ABC):
     """Abstract base class for all GTM audit specialist agents.
@@ -255,6 +273,37 @@ class BaseAgent(ABC):
                     return error_result
 
     # --- Helper Methods ---
+
+    def get_overall_extraction_quality(self) -> str:
+        """Assess the overall extraction quality across all crawled pages."""
+        if not self.context.pages:
+            return "NONE"
+        qualities = [p.extraction_quality() for p in self.context.pages.values()]
+        if all(q == "LOW" for q in qualities):
+            return "LOW"
+        if any(q == "HIGH" for q in qualities):
+            return "HIGH"
+        return "MEDIUM"
+
+    def has_sufficient_data(self) -> bool:
+        """Check if there's enough scraped data to produce meaningful analysis."""
+        return bool(self.context.pages) and self.get_overall_extraction_quality() != "NONE"
+
+    def _insufficient_data_result(self, reason: str = "") -> dict[str, Any]:
+        """Return a standardized result when data is insufficient for analysis."""
+        return {
+            "score": None,
+            "grade": None,
+            "analysis_text": (
+                f"{self.agent_display_name} analysis could not be completed: "
+                f"insufficient website data. {reason}"
+            ),
+            "recommendations": [],
+            "result_data": {
+                "insufficient_data": True,
+                "reason": reason or "No pages were successfully crawled.",
+            },
+        }
 
     def get_all_pages_content(self, max_chars: int = 25000) -> str:
         """Aggregate text content from all crawled pages for LLM prompts."""

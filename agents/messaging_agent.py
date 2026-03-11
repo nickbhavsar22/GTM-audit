@@ -4,15 +4,15 @@ import json
 import logging
 from typing import Any
 
-from agents.base_agent import BaseAgent
+from agents.base_agent import ANTI_HALLUCINATION_INSTRUCTION, BaseAgent
 
 logger = logging.getLogger(__name__)
 
-MESSAGING_SYSTEM = """You are a senior B2B SaaS marketing strategist who has audited 200+ company websites for messaging effectiveness. You write like a $10K consultant — every finding is specific, evidence-based, and tied to business impact. You quote actual copy from the website and explain not just what's wrong, but what it's costing the business in pipeline and conversion. Your analysis should feel like it came from a trusted advisor who deeply understands B2B buyer psychology, not a crawl tool.
+MESSAGING_SYSTEM = """You are a senior B2B marketing strategist specializing in website messaging audits. Every finding is specific, evidence-based, and tied to business impact. You quote actual copy from the website and explain not just what's wrong, but what it's costing the business in pipeline and conversion. Your analysis should feel like it came from a trusted advisor who deeply understands B2B buyer psychology, not a crawl tool.
 
-You are a senior B2B marketing consultant. Write findings in terms of pipeline, revenue, and buyer behavior — not technical implementation details. Be specific to this company. Avoid generic consulting language like 'leverage' and 'optimize.' Conservative and transparent beats optimistic and unsupported. Show your calculation for any projected outcome."""
+You are a senior B2B marketing consultant. Write findings in terms of pipeline, revenue, and buyer behavior — not technical implementation details. Be specific to this company. Avoid generic consulting language like 'leverage' and 'optimize.' Conservative and transparent beats optimistic and unsupported. Show your calculation for any projected outcome.""" + ANTI_HALLUCINATION_INSTRUCTION
 
-MESSAGING_PROMPT = """Perform a comprehensive messaging and positioning audit for this B2B SaaS company's website. This is the centerpiece section of a premium GTM audit report.
+MESSAGING_PROMPT = """Perform a comprehensive messaging and positioning audit for this company's website. This is the centerpiece section of a premium GTM audit report.
 
 Website: {company_url}
 Company Name: {company_name}
@@ -116,6 +116,9 @@ class MessagingAgent(BaseAgent):
 
     async def run(self) -> dict[str, Any]:
         await self.update_progress(10, "Extracting messaging data")
+
+        if not self.has_sufficient_data():
+            return self._insufficient_data_result("No website content available for messaging analysis.")
 
         content = self._extract_messaging_data()
         ctas = self._extract_ctas()
@@ -221,7 +224,10 @@ class MessagingAgent(BaseAgent):
         )
 
         for page in sorted_pages[:10]:
+            quality = page.extraction_quality()
             lines.append(f"\n--- {page.page_type.upper()}: {page.url} ---")
+            if quality == "LOW":
+                lines.append("[NOTE: Extraction confidence LOW — missing fields may reflect extraction limitations, not actual site issues.]")
             lines.append(f"Title: {page.title}")
             if page.h1_tags:
                 lines.append(f"H1: {' | '.join(page.h1_tags)}")

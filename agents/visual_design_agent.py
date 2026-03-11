@@ -4,13 +4,13 @@ import json
 import logging
 from typing import Any
 
-from agents.base_agent import BaseAgent
+from agents.base_agent import ANTI_HALLUCINATION_INSTRUCTION, BaseAgent
 
 logger = logging.getLogger(__name__)
 
-DESIGN_SYSTEM = """You are a senior UX/UI strategist who has redesigned 100+ B2B SaaS websites. You evaluate design not just for aesthetics but for its impact on conversion and trust. Every design choice either builds buyer confidence or erodes it — you identify which is happening and why. You reference specific pages and elements, compare to best-in-class B2B SaaS sites by name, and explain what each design issue is costing the business. Your analysis reads like a UX audit from a top design agency."""
+DESIGN_SYSTEM = """You are a senior UX/UI strategist specializing in B2B website design. You evaluate design not just for aesthetics but for its impact on conversion and trust. Every design choice either builds buyer confidence or erodes it — you identify which is happening and why. You reference specific pages and elements, compare to best-in-class B2B sites by name, and explain what each design issue is costing the business. Your analysis reads like a UX audit from a top design agency.""" + ANTI_HALLUCINATION_INSTRUCTION
 
-DESIGN_PROMPT = """Analyze this B2B SaaS website's visual design and UX effectiveness.
+DESIGN_PROMPT = """Analyze this website's visual design and UX effectiveness.
 
 Website: {company_url}
 
@@ -29,7 +29,7 @@ IMAGE DATA:
 CRITICAL INSTRUCTIONS:
 - For every finding, explain the BUSINESS IMPACT — how the design choice affects conversion, trust, or engagement (e.g., "The lack of visual hierarchy in the hero section means visitors take 5-8 seconds to understand the value prop, increasing bounce rate by an estimated 15-20%").
 - Reference SPECIFIC pages and elements from the data provided.
-- Compare to BEST PRACTICES with named examples of well-designed B2B SaaS sites.
+- Compare to BEST PRACTICES with named examples of well-designed B2B sites.
 - For each recommendation, describe the BEFORE state and AFTER state concretely.
 - Write analysis_summary as a strategic narrative for a marketing leader, not a design checklist.
 
@@ -56,7 +56,7 @@ Provide a JSON response:
             "before_example": "description of current design state",
             "after_example": "description of recommended design change",
             "current_state": "current design description",
-            "best_practice": "named example of a B2B SaaS site doing this well",
+            "best_practice": "named example of a B2B site doing this well",
             "impact": "High|Medium|Low",
             "effort": "High|Medium|Low",
             "implementation_steps": ["step 1", "step 2", "step 3"],
@@ -77,6 +77,9 @@ class VisualDesignAgent(BaseAgent):
 
     async def run(self) -> dict[str, Any]:
         await self.update_progress(10, "Extracting design data")
+
+        if not self.has_sufficient_data():
+            return self._insufficient_data_result("No website content available for visual design analysis.")
 
         site_data = self._extract_design_data()
         ctas = self._extract_cta_details()
@@ -135,7 +138,7 @@ class VisualDesignAgent(BaseAgent):
         """Analyze design using Claude Vision with actual screenshots."""
         image_labels = "\n".join(f"- Image {i+1}: {s['label']}" for i, s in enumerate(screenshots))
 
-        prompt = f"""Analyze this B2B SaaS website's visual design based on the actual screenshots provided.
+        prompt = f"""Analyze this website's visual design based on the actual screenshots provided.
 
 Website: {self.context.company_url}
 
@@ -157,7 +160,7 @@ IMAGE DATA:
 CRITICAL INSTRUCTIONS:
 - For every finding, explain the BUSINESS IMPACT — how the design choice affects conversion and trust (e.g., "The low-contrast CTA button blends into the hero section, likely reducing click-through by 15-25%").
 - Reference what you ACTUALLY SEE in the screenshots — colors, layout, spacing, visual hierarchy.
-- Compare to BEST PRACTICES with named examples of well-designed B2B SaaS sites.
+- Compare to BEST PRACTICES with named examples of well-designed B2B sites.
 - For each recommendation, describe the BEFORE (what you see) and AFTER (what it should look like).
 
 Based on what you SEE in the screenshots AND the extracted data, provide a JSON response:
@@ -184,7 +187,7 @@ Based on what you SEE in the screenshots AND the extracted data, provide a JSON 
             "before_example": "description of current design as seen in screenshot",
             "after_example": "description of recommended design change",
             "current_state": "current design as seen in screenshot",
-            "best_practice": "named example of a B2B SaaS site doing this well",
+            "best_practice": "named example of a B2B site doing this well",
             "impact": "High|Medium|Low",
             "effort": "High|Medium|Low",
             "implementation_steps": ["step 1", "step 2", "step 3"],
@@ -266,9 +269,12 @@ Generate 5-8 specific, actionable design recommendations based on visual evidenc
     def _extract_design_data(self) -> str:
         lines = []
         for url, page in list(self.context.pages.items())[:15]:
+            quality = page.extraction_quality()
             lines.append(f"\n--- {page.page_type.upper()}: {url} ---")
+            if quality == "LOW":
+                lines.append("[NOTE: Extraction confidence is LOW for this page. Missing fields may reflect extraction limitations, not actual site issues.]")
             lines.append(f"Title: {page.title}")
-            lines.append(f"H1: {', '.join(page.h1_tags) or 'NONE'}")
+            lines.append(f"H1: {', '.join(page.h1_tags) if page.h1_tags else '[Not extracted — do NOT assume missing from page]'}")
             lines.append(f"H2 Count: {len(page.h2_tags)}")
             lines.append(f"Images: {len(page.images)}")
             lines.append(f"CTAs: {len(page.ctas)}")

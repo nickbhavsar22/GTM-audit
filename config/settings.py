@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     g2_api_key: Optional[str] = None
 
     # LLM Config
-    llm_model: str = "claude-sonnet-4-6-20250514"
+    llm_model: str = "claude-sonnet-4-20250514"
     llm_max_tokens: int = 16000
 
     # Audit Config
@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     # Consultant / Branding
     consultant_name: str = "Bhavsar Growth Consulting"
     consultant_bio: str = (
-        "Bhavsar Growth Consulting helps B2B SaaS companies build predictable "
+        "Bhavsar Growth Consulting helps B2B companies build predictable "
         "pipeline through GTM strategy, positioning, and demand generation. "
         "With 20+ years of enterprise software marketing experience, we've "
         "helped companies from Series A to public build scalable go-to-market engines."

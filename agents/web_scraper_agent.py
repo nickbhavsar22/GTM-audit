@@ -1,4 +1,4 @@
-"""Web Scraper Agent — crawls target website using Playwright or httpx fallback."""
+"""Web Scraper Agent — crawls target website using Crawl4AI or httpx fallback."""
 
 import asyncio
 import base64
@@ -13,28 +13,12 @@ from agents.context_store import PageData, ScreenshotData
 
 logger = logging.getLogger(__name__)
 
-# JavaScript extraction function — used by both Playwright and httpx paths.
-# Returns a JSON-serializable dict with all page data.
-PAGE_EXTRACT_JS = """() => {
+# JavaScript extraction for supplemental data Crawl4AI doesn't natively extract
+# (CTAs, forms, testimonials, tech stack, schema, social links)
+SUPPLEMENTAL_EXTRACT_JS = """() => {
     const getText = (sel) => {
         const els = document.querySelectorAll(sel);
         return Array.from(els).map(e => e.textContent.trim()).filter(Boolean);
-    };
-
-    const getLinks = (internal) => {
-        const base = window.location.hostname;
-        const links = Array.from(document.querySelectorAll('a[href]'));
-        return links
-            .map(a => a.href)
-            .filter(href => {
-                try {
-                    const u = new URL(href);
-                    const isInternal = u.hostname === base || u.hostname === '';
-                    return internal ? isInternal : !isInternal;
-                } catch { return false; }
-            })
-            .filter((v, i, a) => a.indexOf(v) === i)
-            .slice(0, 100);
     };
 
     const socialPlatforms = ['linkedin', 'twitter', 'x.com', 'facebook',
@@ -146,19 +130,10 @@ PAGE_EXTRACT_JS = """() => {
         if (dateMeta) publishDate = dateMeta.content || '';
     }
 
-    // Word count
-    const bodyText = document.body?.innerText || '';
-    const wordCount = bodyText.split(/\s+/).filter(w => w.length > 0).length;
-
     return {
-        title: document.title || '',
-        metaDescription: document.querySelector('meta[name="description"]')?.content || '',
         h1: getText('h1'),
         h2: getText('h2'),
         h3: getText('h3'),
-        rawText: document.body?.innerText?.substring(0, 10000) || '',
-        internalLinks: getLinks(true),
-        externalLinks: getLinks(false),
         socialLinks,
         ctas,
         forms,
@@ -166,10 +141,8 @@ PAGE_EXTRACT_JS = """() => {
         testimonials: testimonials.slice(0, 10),
         hasSchema: schemaScripts.length > 0,
         schemaTypes,
-        ogSiteName: document.querySelector('meta[property="og:site_name"]')?.content || '',
         techStack,
         publishDate,
-        wordCount,
     };
 }"""
 
@@ -183,99 +156,208 @@ class WebScraperAgent(BaseAgent):
         """Crawl the target website and extract structured data."""
         max_pages = 10 if self.context.audit_type == "quick" else 30
 
-        await self.update_progress(5, "Initializing browser")
+        await self.update_progress(5, "Initializing crawler")
 
-        # Try Playwright first, fall back to httpx
-        try:
-            return await self._run_playwright(max_pages)
-        except Exception as e:
-            logger.warning(f"Playwright failed ({e}). Falling back to httpx.")
+        # Try Crawl4AI with one retry (browser launch can fail intermittently on Windows)
+        crawl4ai_attempts = 2
+        for attempt in range(1, crawl4ai_attempts + 1):
+            try:
+                return await self._run_crawl4ai(max_pages)
+            except Exception as e:
+                logger.warning(f"Crawl4AI attempt {attempt}/{crawl4ai_attempts} failed ({e}).")
+                if attempt < crawl4ai_attempts:
+                    await asyncio.sleep(2)
 
         logger.info("[web_scraper] Using httpx fallback")
         return await self._run_httpx_fallback(max_pages)
 
-    async def _run_playwright(self, max_pages: int) -> dict[str, Any]:
-        """Primary scraper using Playwright headless Chromium."""
-        from playwright.async_api import async_playwright
+    async def _run_crawl4ai(self, max_pages: int) -> dict[str, Any]:
+        """Primary scraper using Crawl4AI with sitemap discovery + deep crawl."""
+        # Fix Windows encoding crash: Crawl4AI uses Rich console logging with
+        # Unicode chars (→, ✓) that fail on cp1252 Windows terminals.
+        import io
+        import os
+        import sys
 
-        logger.info("[web_scraper] Starting Playwright scraper")
+        os.environ["PYTHONIOENCODING"] = "utf-8"
+        # Force stdout/stderr to UTF-8 so Rich console doesn't crash
+        if hasattr(sys.stdout, "reconfigure"):
+            try:
+                sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+        if hasattr(sys.stderr, "reconfigure"):
+            try:
+                sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
 
-        pages_crawled = 0
-        urls_to_visit = [self.context.company_url]
-        visited: set[str] = set()
+        from crawl4ai import (
+            AsyncWebCrawler,
+            BrowserConfig,
+            CacheMode,
+            CrawlerRunConfig,
+        )
+        from crawl4ai.deep_crawling import BFSDeepCrawlStrategy, DomainFilter, FilterChain
+
+        logger.info("[web_scraper] Starting Crawl4AI scraper")
+
         base_domain = urlparse(self.context.company_url).netloc
 
-        async with async_playwright() as p:
+        # Configure browser
+        browser_config = BrowserConfig(
+            browser_type="chromium",
+            headless=True,
+            viewport_width=1440,
+            viewport_height=900,
+            verbose=False,
+            ignore_https_errors=True,
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            ),
+        )
+
+        # Configure deep crawl strategy with domain filtering
+        filter_chain = FilterChain(filters=[DomainFilter(allowed_domains=[base_domain])])
+
+        deep_strategy = BFSDeepCrawlStrategy(
+            max_depth=3,
+            max_pages=max_pages,
+            include_external=False,
+            filter_chain=filter_chain,
+        )
+
+        # Configure crawler run
+        run_config = CrawlerRunConfig(
+            deep_crawl_strategy=deep_strategy,
+            cache_mode=CacheMode.BYPASS,
+            screenshot=True,
+            screenshot_wait_for=2.0,
+            wait_until="networkidle",
+            page_timeout=30000,
+            scan_full_page=True,
+            scroll_delay=0.3,
+            mean_delay=0.5,
+            max_range=1.0,
+            js_code=SUPPLEMENTAL_EXTRACT_JS,
+            stream=True,
+        )
+
+        await self.update_progress(10, "Browser connected via Crawl4AI")
+
+        pages_crawled = 0
+
+        async with AsyncWebCrawler(config=browser_config) as crawler:
+            # Try sitemap discovery first to seed URLs
+            seed_urls = await self._discover_sitemap_urls(crawler, base_domain, max_pages)
+            if seed_urls:
+                logger.info(f"[web_scraper] Discovered {len(seed_urls)} URLs from sitemap")
+
+            # Deep crawl from the main URL
             try:
-                browser = await asyncio.wait_for(
-                    p.chromium.launch(headless=True), timeout=30
+                results_iter = await crawler.arun(
+                    url=self.context.company_url,
+                    config=run_config,
                 )
-            except (asyncio.TimeoutError, Exception) as e:
-                raise RuntimeError(f"Playwright Chromium unavailable: {e}") from e
-            page = await browser.new_page(
-                viewport={"width": 1440, "height": 900},
-                user_agent=(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/120.0.0.0 Safari/537.36"
-                ),
-            )
-            await self.update_progress(10, "Browser connected via Playwright")
 
-            try:
-                while urls_to_visit and pages_crawled < max_pages:
-                    url = urls_to_visit.pop(0)
-                    normalized = url.rstrip("/")
-                    if normalized in visited:
-                        continue
-                    visited.add(normalized)
-
-                    try:
-                        page_data = await self._scrape_page_playwright(
-                            page, url, base_domain
+                # Process results from deep crawl (streaming mode returns async iterable)
+                async for result in results_iter:
+                    if not result.success:
+                        logger.warning(
+                            f"[web_scraper] Failed to crawl {result.url}: "
+                            f"{result.error_message}"
                         )
-                        if page_data:
-                            await self.context.set_page(page_data)
-                            pages_crawled += 1
+                        continue
 
-                            # Take inline screenshot
-                            screenshot = await self._take_screenshot_playwright(
-                                page, url, page_data.page_type
+                    page_data = self._crawl_result_to_page_data(result)
+                    if page_data:
+                        await self.context.set_page(page_data)
+                        pages_crawled += 1
+
+                        # Store screenshot if available
+                        if result.screenshot:
+                            screenshot = ScreenshotData(
+                                url=result.url,
+                                screenshot_type="full_page",
+                                base64_data=result.screenshot,
+                                width=1440,
+                                page_type=page_data.page_type,
+                                description=f"Full page screenshot of {page_data.page_type} page",
+                                captured_at=time.strftime(
+                                    "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
+                                ),
                             )
-                            if screenshot:
-                                await self.context.set_screenshot(screenshot)
+                            await self.context.set_screenshot(screenshot)
 
-                            # Add internal links to visit queue
-                            for link in page_data.internal_links:
-                                link_normalized = link.rstrip("/")
-                                if (
-                                    link_normalized not in visited
-                                    and urlparse(link).netloc == base_domain
-                                    and link not in urls_to_visit
-                                ):
-                                    urls_to_visit.append(link)
-                        else:
-                            logger.warning(f"[web_scraper] No data extracted from {url}")
-
-                        progress = min(90, int(10 + (pages_crawled / max_pages) * 80))
+                        progress = min(85, int(10 + (pages_crawled / max_pages) * 75))
                         await self.update_progress(
                             progress,
                             f"Crawled {pages_crawled}/{max_pages} pages",
                         )
 
+            except Exception as e:
+                logger.warning(f"[web_scraper] Deep crawl error: {e}")
+                if pages_crawled == 0:
+                    raise
+
+            # If sitemap found extra URLs not yet visited, crawl them individually
+            if seed_urls and pages_crawled < max_pages:
+                crawled_urls = {u.rstrip("/") for u in self.context.pages.keys()}
+                remaining = [
+                    u for u in seed_urls if u.rstrip("/") not in crawled_urls
+                ]
+                # Prioritize GTM-relevant pages
+                remaining = self._prioritize_urls(remaining)
+
+                single_config = CrawlerRunConfig(
+                    cache_mode=CacheMode.BYPASS,
+                    screenshot=True,
+                    screenshot_wait_for=2.0,
+                    wait_until="networkidle",
+                    page_timeout=30000,
+                    scan_full_page=True,
+                    scroll_delay=0.3,
+                    js_code=SUPPLEMENTAL_EXTRACT_JS,
+                )
+
+                for url in remaining[: max_pages - pages_crawled]:
+                    try:
+                        result = await crawler.arun(url=url, config=single_config)
+                        # arun may return a container; handle both cases
+                        if hasattr(result, '__aiter__'):
+                            async for r in result:
+                                result = r
+                                break
+                        if result.success:
+                            page_data = self._crawl_result_to_page_data(result)
+                            if page_data:
+                                await self.context.set_page(page_data)
+                                pages_crawled += 1
+                                if result.screenshot:
+                                    screenshot = ScreenshotData(
+                                        url=result.url,
+                                        screenshot_type="full_page",
+                                        base64_data=result.screenshot,
+                                        width=1440,
+                                        page_type=page_data.page_type,
+                                        description=f"Full page screenshot of {page_data.page_type} page",
+                                        captured_at=time.strftime(
+                                            "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
+                                        ),
+                                    )
+                                    await self.context.set_screenshot(screenshot)
                     except Exception as e:
-                        logger.warning(f"Failed to scrape {url}: {e}")
+                        logger.warning(f"[web_scraper] Failed to crawl sitemap URL {url}: {e}")
                         continue
-            finally:
-                await browser.close()
 
         await self._detect_company_name()
         await self.update_progress(95, "Analyzing site structure")
 
         if pages_crawled == 0:
             raise RuntimeError(
-                f"Playwright crawled 0 pages from {self.context.company_url}. "
-                f"Visited {len(visited)} URLs but all failed."
+                f"Crawl4AI crawled 0 pages from {self.context.company_url}."
             )
 
         tech_stack = self._aggregate_tech_stack()
@@ -296,75 +378,182 @@ class WebScraperAgent(BaseAgent):
             },
         }
 
-    async def _scrape_page_playwright(
-        self, page, url: str, base_domain: str
-    ) -> Optional[PageData]:
-        """Scrape a single page via Playwright."""
-        start_time = time.time()
-
-        response = await page.goto(url, timeout=30000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(1500)  # Wait for dynamic content
-
-        status_code = response.status if response else 0
-        if status_code >= 400:
-            logger.warning(f"[web_scraper] {url} returned status {status_code}")
-            return None
-
-        # Extract page data via JavaScript (reuses PAGE_EXTRACT_JS)
-        data = await page.evaluate(PAGE_EXTRACT_JS)
-        if not data:
-            return None
-
-        load_time = time.time() - start_time
-        page_type = self._classify_page(url, data)
-
-        return PageData(
-            url=url,
-            title=data.get("title", ""),
-            meta_description=data.get("metaDescription", ""),
-            h1_tags=data.get("h1", []),
-            h2_tags=data.get("h2", []),
-            h3_tags=data.get("h3", []),
-            raw_text=data.get("rawText", ""),
-            ctas=data.get("ctas", []),
-            forms=data.get("forms", []),
-            images=data.get("images", []),
-            internal_links=data.get("internalLinks", []),
-            external_links=data.get("externalLinks", []),
-            social_links=data.get("socialLinks", {}),
-            load_time=load_time,
-            status_code=status_code,
-            page_type=page_type,
-            testimonials=data.get("testimonials", []),
-            has_schema=data.get("hasSchema", False),
-            schema_types=data.get("schemaTypes", []),
-            og_site_name=data.get("ogSiteName", ""),
-            tech_stack=data.get("techStack", []),
-            word_count=data.get("wordCount", 0),
-            publish_date=data.get("publishDate", ""),
-            content_type=self._classify_content_type(page_type, data),
-        )
-
-    async def _take_screenshot_playwright(
-        self, page, url: str, page_type: str
-    ) -> Optional[ScreenshotData]:
-        """Take a full-page screenshot via Playwright."""
+    async def _discover_sitemap_urls(
+        self, crawler, base_domain: str, max_urls: int
+    ) -> list[str]:
+        """Try to discover URLs from sitemap.xml."""
         try:
-            screenshot_bytes = await page.screenshot(full_page=True, type="png")
-            b64 = base64.b64encode(screenshot_bytes).decode("utf-8")
-            if b64:
-                return ScreenshotData(
-                    url=url,
-                    screenshot_type="full_page",
-                    base64_data=b64,
-                    width=1440,
-                    page_type=page_type,
-                    description=f"Full page screenshot of {page_type} page",
-                    captured_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                )
+            from crawl4ai import SeedingConfig
+
+            seeding_config = SeedingConfig(
+                source="sitemap",
+                max_urls=max_urls * 3,  # discover more than we'll crawl, then prioritize
+                filter_nonsense_urls=True,
+                cache_ttl_hours=1,
+            )
+
+            # aseed_urls expects domain without protocol
+            domain = base_domain.replace("www.", "")
+            urls = await asyncio.wait_for(
+                crawler.aseed_urls(domain, config=seeding_config),
+                timeout=15,
+            )
+
+            if isinstance(urls, dict):
+                # Multiple domains returned
+                all_urls = []
+                for domain_urls in urls.values():
+                    all_urls.extend(domain_urls)
+                return all_urls
+            elif isinstance(urls, list):
+                return urls
+            return []
         except Exception as e:
-            logger.warning(f"Playwright screenshot failed for {url}: {e}")
-        return None
+            logger.info(f"[web_scraper] Sitemap discovery failed (normal for sites without sitemap): {e}")
+            return []
+
+    def _crawl_result_to_page_data(self, result) -> Optional[PageData]:
+        """Convert a Crawl4AI CrawlResult into our PageData dataclass."""
+        try:
+            url = result.redirected_url or result.url
+
+            # Extract metadata
+            metadata = result.metadata or {}
+            title = metadata.get("title", "")
+            meta_description = metadata.get("description", "") or metadata.get("meta_description", "")
+            og_site_name = metadata.get("og:site_name", "")
+
+            # Get raw text from markdown (LLM-ready format)
+            raw_text = ""
+            if result.markdown:
+                md = str(result.markdown)
+                raw_text = md[:10000]
+
+            # Extract headings from HTML since Crawl4AI doesn't parse them separately
+            h1_tags, h2_tags, h3_tags = self._extract_headings_from_html(
+                result.html or result.cleaned_html or ""
+            )
+
+            # Extract links from Crawl4AI's link data
+            internal_links = []
+            external_links = []
+            if result.links:
+                for link in result.links.get("internal", []):
+                    href = link.get("href", "")
+                    if href:
+                        internal_links.append(href)
+                for link in result.links.get("external", []):
+                    href = link.get("href", "")
+                    if href:
+                        external_links.append(href)
+
+            # Get supplemental data from our JS extraction
+            js_data = {}
+            if result.js_execution_result:
+                if isinstance(result.js_execution_result, dict):
+                    js_data = result.js_execution_result
+                elif isinstance(result.js_execution_result, str):
+                    try:
+                        js_data = json.loads(result.js_execution_result)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+
+            # Use JS-extracted headings as fallback if HTML parsing missed them
+            if not h1_tags and js_data.get("h1"):
+                h1_tags = js_data["h1"]
+            if not h2_tags and js_data.get("h2"):
+                h2_tags = js_data["h2"]
+            if not h3_tags and js_data.get("h3"):
+                h3_tags = js_data["h3"]
+
+            # Word count from raw text
+            word_count = len(raw_text.split()) if raw_text else 0
+
+            page_type = self._classify_page(url, {"title": title, "rawText": raw_text})
+
+            return PageData(
+                url=url,
+                title=title,
+                meta_description=meta_description,
+                h1_tags=h1_tags,
+                h2_tags=h2_tags,
+                h3_tags=h3_tags,
+                raw_text=raw_text,
+                ctas=js_data.get("ctas", []),
+                forms=js_data.get("forms", []),
+                images=js_data.get("images", []),
+                internal_links=internal_links[:100],
+                external_links=external_links[:50],
+                social_links=js_data.get("socialLinks", {}),
+                load_time=0.0,  # Crawl4AI doesn't expose individual page load time
+                status_code=result.status_code or 200,
+                page_type=page_type,
+                testimonials=js_data.get("testimonials", []),
+                has_schema=js_data.get("hasSchema", False),
+                schema_types=js_data.get("schemaTypes", []),
+                og_site_name=og_site_name,
+                tech_stack=js_data.get("techStack", []),
+                word_count=word_count,
+                publish_date=js_data.get("publishDate", ""),
+                content_type=self._classify_content_type(
+                    page_type, {"title": title, "rawText": raw_text}
+                ),
+            )
+        except Exception as e:
+            logger.warning(f"[web_scraper] Failed to convert CrawlResult for {result.url}: {e}")
+            return None
+
+    def _extract_headings_from_html(self, html: str) -> tuple[list[str], list[str], list[str]]:
+        """Extract h1, h2, h3 tags from HTML string."""
+        from bs4 import BeautifulSoup
+
+        if not html:
+            return [], [], []
+
+        try:
+            soup = BeautifulSoup(html, "lxml")
+            h1s = [h.get_text(strip=True) for h in soup.find_all("h1") if h.get_text(strip=True)]
+            h2s = [h.get_text(strip=True) for h in soup.find_all("h2") if h.get_text(strip=True)]
+            h3s = [h.get_text(strip=True) for h in soup.find_all("h3") if h.get_text(strip=True)]
+            return h1s, h2s, h3s
+        except Exception:
+            return [], [], []
+
+    def _prioritize_urls(self, urls: list[str]) -> list[str]:
+        """Sort URLs by GTM relevance — prioritize key page types."""
+        priority_keywords = {
+            "pricing": 10,
+            "product": 9,
+            "platform": 9,
+            "solution": 9,
+            "features": 8,
+            "about": 7,
+            "customer": 7,
+            "case-stud": 7,
+            "success": 7,
+            "demo": 6,
+            "contact": 6,
+            "integrations": 5,
+            "partners": 5,
+            "blog": 3,
+            "resources": 3,
+            "news": 2,
+            "careers": 1,
+            "legal": 0,
+            "privacy": 0,
+            "terms": 0,
+            "cookie": 0,
+        }
+
+        def score(url: str) -> int:
+            url_lower = url.lower()
+            best = 4  # default score for unknown pages
+            for keyword, points in priority_keywords.items():
+                if keyword in url_lower:
+                    best = max(best, points)
+            return best
+
+        return sorted(urls, key=score, reverse=True)
 
     async def _detect_company_name(self) -> None:
         """Detect company name from homepage data with multiple fallback strategies."""
@@ -575,6 +764,12 @@ class WebScraperAgent(BaseAgent):
                     continue
 
         await self._detect_company_name()
+
+        if pages_crawled == 0:
+            raise RuntimeError(
+                f"httpx fallback crawled 0 pages from {self.context.company_url}. "
+                f"Site may be blocking automated requests."
+            )
 
         return {
             "score": None,

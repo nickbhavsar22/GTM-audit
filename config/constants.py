@@ -30,6 +30,7 @@ class AgentName(str, Enum):
     COMPETITOR = "competitor"
     REVIEW_SENTIMENT = "review_sentiment"
     SEO = "seo"
+    AEO = "aeo"
     MESSAGING = "messaging"
     VISUAL_DESIGN = "visual_design"
     CONVERSION = "conversion"
@@ -45,6 +46,7 @@ AGENT_DISPLAY_NAMES: dict[str, str] = {
     AgentName.COMPETITOR: "Competitor Intelligence",
     AgentName.REVIEW_SENTIMENT: "Reviews & Sentiment",
     AgentName.SEO: "SEO & Visibility",
+    AgentName.AEO: "Answer Engine Optimization",
     AgentName.MESSAGING: "Messaging & Positioning",
     AgentName.VISUAL_DESIGN: "Visual & Design",
     AgentName.CONVERSION: "Conversion Optimization",
@@ -61,6 +63,7 @@ QUICK_AUDIT_AGENTS: list[str] = [
     AgentName.SCREENSHOT,
     AgentName.COMPANY_RESEARCH,
     AgentName.SEO,
+    AgentName.AEO,
     AgentName.MESSAGING,
     AgentName.COMPETITOR,
     AgentName.REPORT,

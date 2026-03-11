@@ -4,11 +4,18 @@ import json
 import logging
 from typing import Any
 
-from agents.base_agent import BaseAgent
+from agents.base_agent import ANTI_HALLUCINATION_INSTRUCTION, BaseAgent
 
 logger = logging.getLogger(__name__)
 
-COMPANY_RESEARCH_SYSTEM = """You are a B2B SaaS company research analyst who builds comprehensive company profiles for GTM strategy audits. You extract not just factual data but strategic context — understanding the company's market position, competitive landscape, and growth stage. Be factual — only report what you can confirm from the content. If information is not available, use null. Do not invent data. However, you CAN make reasonable inferences about market position and competitive landscape based on the evidence available, clearly labeled as inferences."""
+COMPANY_RESEARCH_SYSTEM = """You are a B2B company research analyst who builds comprehensive company profiles for GTM strategy audits. You extract factual data from website content. CRITICAL RULES:
+- Only report what you can confirm from the provided content. If information is not available, use null.
+- Do NOT invent competitors, traffic numbers, or market positions.
+- Identify the company's industry STRICTLY from how the company describes itself on its website. Look for explicit keywords like 'compliance', 'financial services', 'healthcare', 'marketing technology', etc.
+- Do NOT infer an industry from the domain name alone or from your training data about what companies with similar names do.
+- The 'likely_competitors' field must ONLY contain companies explicitly named on the website (e.g., in comparison pages, integration partners, or competitive mentions). Return an empty list [] if no competitors are mentioned.
+- Do NOT guess competitors based on your knowledge of the industry. Only report what the website content shows.
+""" + ANTI_HALLUCINATION_INSTRUCTION
 
 COMPANY_RESEARCH_PROMPT = """Analyze this company's website content and extract a comprehensive company profile. This profile will provide context for the entire GTM audit, so be thorough.
 
@@ -22,7 +29,7 @@ Return a JSON object with this structure:
     "company_name": "string",
     "tagline": "string or null — their primary tagline/H1",
     "description": "2-3 sentence description of what the company does and for whom",
-    "industry": "string (e.g., 'Marketing Technology', 'Sales Enablement')",
+    "industry": "string (e.g., 'Marketing Technology', 'Compliance & Regulatory', 'Healthcare IT', 'Financial Services')",
     "category": "string (e.g., 'CRM', 'Analytics', 'Automation')",
     "subcategory": "more specific category if applicable",
     "target_market": "B2B, B2C, or Both",
@@ -62,7 +69,7 @@ Return a JSON object with this structure:
         "self_serve_possible": true|false
     }},
     "competitive_context": {{
-        "likely_competitors": ["list of likely competitors based on positioning — use your knowledge"],
+        "likely_competitors": ["ONLY list competitors explicitly mentioned on the website. If none are mentioned, return empty list []"],
         "market_category": "the specific market category this company competes in",
         "positioning_approach": "category creator|challenger|niche|horizontal — how they position",
         "competitive_moat_signals": ["any evidence of defensible differentiation"]

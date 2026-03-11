@@ -65,7 +65,7 @@ st.title("GTM Audit Platform")
 st.markdown(
     """
     Welcome to the **GTM Audit Platform** — an AI-powered marketing audit tool
-    for analyzing B2B SaaS companies' go-to-market strategies.
+    for analyzing B2B companies' go-to-market strategies.
 
     ### What You Can Do
     - **New Audit** — Submit a company website URL for comprehensive analysis

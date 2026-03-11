@@ -35,6 +35,25 @@ class PageData:
     publish_date: str = ""
     content_type: str = ""  # blog_post, case_study, whitepaper, webinar, landing_page
 
+    def extraction_quality(self) -> str:
+        """Assess extraction confidence: HIGH, MEDIUM, or LOW.
+
+        LOW means key fields are missing despite having raw_text content,
+        suggesting an extraction failure rather than an actual site issue.
+        """
+        has_content = bool(self.raw_text and len(self.raw_text.strip()) > 50)
+        has_title = bool(self.title and self.title.strip())
+        has_headings = bool(self.h1_tags or self.h2_tags)
+        has_links = bool(self.internal_links)
+
+        if has_title and has_headings and has_links:
+            return "HIGH"
+        if has_content and (has_title or has_headings):
+            return "MEDIUM"
+        if has_content and not has_title and not has_headings:
+            return "LOW"
+        return "LOW" if not has_content else "MEDIUM"
+
 
 @dataclass
 class ScreenshotData:

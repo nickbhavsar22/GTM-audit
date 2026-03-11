@@ -85,7 +85,7 @@ class ModuleScore:
     screenshots: list[str] = field(default_factory=list)  # Screenshot references
     extra_data: dict = field(default_factory=dict)  # Agent-specific data (competitors, pillars, etc.)
     benchmark: float = 0.0                          # Industry median for comparison
-    benchmark_label: str = "B2B SaaS median"        # Benchmark context label
+    benchmark_label: str = "B2B median"               # Benchmark context label
     callout: str = ""                               # "The Single Most Important Thing" (1 sentence)
 
     @property

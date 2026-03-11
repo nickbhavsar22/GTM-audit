@@ -26,7 +26,7 @@ def check_password() -> bool:
             {logo_html}
             <h1 style="color: #DCDAD5; font-weight: 700; letter-spacing: -0.01em;">GTM Audit Platform</h1>
             <p style="color: #8A8780; font-size: 1.1rem;">
-                AI-Powered B2B SaaS Marketing Audit
+                AI-Powered B2B Marketing Audit
             </p>
         </div>
         """,

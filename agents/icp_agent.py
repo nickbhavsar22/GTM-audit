@@ -4,13 +4,13 @@ import json
 import logging
 from typing import Any
 
-from agents.base_agent import BaseAgent
+from agents.base_agent import ANTI_HALLUCINATION_INSTRUCTION, BaseAgent
 
 logger = logging.getLogger(__name__)
 
-ICP_SYSTEM = """You are a B2B SaaS go-to-market strategist who specializes in ICP definition and buyer persona development. You don't just define segments — you assess how well the company's entire web presence aligns with the buyers they're trying to reach. You identify gaps between who they say they serve and how their website actually speaks to those buyers. Your analysis helps marketing teams focus resources on the segments where they can win."""
+ICP_SYSTEM = """You are a B2B go-to-market strategist who specializes in ICP definition and buyer persona development. You don't just define segments — you assess how well the company's entire web presence aligns with the buyers they're trying to reach. You identify gaps between who they say they serve and how their website actually speaks to those buyers. Your analysis helps marketing teams focus resources on the segments where they can win.""" + ANTI_HALLUCINATION_INSTRUCTION
 
-ICP_PROMPT = """Perform a comprehensive ICP and buyer persona assessment for this B2B SaaS company. Evaluate how well their website targets and speaks to their ideal buyers.
+ICP_PROMPT = """Perform a comprehensive ICP and buyer persona assessment for this company. Evaluate how well their website targets and speaks to their ideal buyers.
 
 Website: {company_url}
 Company Name: {company_name}
@@ -28,7 +28,7 @@ CRITICAL INSTRUCTIONS:
 - For every finding, explain the BUSINESS IMPACT — how ICP clarity (or lack thereof) affects pipeline quality and conversion (e.g., "Trying to speak to both SMBs and enterprises on the same homepage dilutes the message for both, likely reducing qualified demo requests by 20-30%").
 - Quote ACTUAL copy from the website that reveals targeting choices (or lack thereof).
 - Assess the GAP between stated ICP and how the website actually communicates — do they say they target enterprise but their copy reads SMB?
-- Compare to BEST PRACTICES with named examples of B2B SaaS companies with excellent ICP alignment.
+- Compare to BEST PRACTICES with named examples of companies with excellent ICP alignment.
 - Write analysis_summary as a strategic narrative about go-to-market focus.
 
 Provide a JSON response:
@@ -87,7 +87,7 @@ Provide a JSON response:
             "before_example": "current messaging that misses the ICP",
             "after_example": "suggested ICP-aligned messaging",
             "current_state": "current state",
-            "best_practice": "named example of a B2B SaaS company with excellent ICP alignment",
+            "best_practice": "named example of a company with excellent ICP alignment",
             "impact": "High|Medium|Low",
             "effort": "High|Medium|Low",
             "implementation_steps": ["step 1", "step 2"],
@@ -108,6 +108,9 @@ class ICPAgent(BaseAgent):
 
     async def run(self) -> dict[str, Any]:
         await self.update_progress(10, "Gathering customer evidence")
+
+        if not self.has_sufficient_data():
+            return self._insufficient_data_result("No website content available for ICP analysis.")
 
         company_profile = self._get_company_profile()
         customer_evidence = self._extract_customer_evidence()
@@ -173,7 +176,10 @@ class ICPAgent(BaseAgent):
         lines = []
         for pt in ["home", "product", "customers", "about"]:
             for page in self.context.get_pages_by_type(pt):
+                quality = page.extraction_quality()
                 lines.append(f"\n--- {pt.upper()}: {page.url} ---")
+                if quality == "LOW":
+                    lines.append("[NOTE: Extraction confidence LOW — missing fields may reflect extraction limitations, not actual site issues.]")
                 lines.append(page.raw_text[:2000])
         return "\n".join(lines)[:15000]
 

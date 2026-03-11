@@ -4,13 +4,13 @@ import json
 import logging
 from typing import Any
 
-from agents.base_agent import BaseAgent
+from agents.base_agent import ANTI_HALLUCINATION_INSTRUCTION, BaseAgent
 
 logger = logging.getLogger(__name__)
 
-REVIEW_SYSTEM = """You are a B2B trust and credibility strategist. You evaluate how effectively a company leverages customer proof to build buyer confidence and reduce purchase risk. You assess not just whether proof exists, but whether it's strategically deployed to support the buying journey. In B2B SaaS, the trust stack (testimonials, logos, case studies, reviews, security certifications) is often the difference between a demo request and a bounce. Your analysis reads like advice from a trusted GTM advisor."""
+REVIEW_SYSTEM = """You are a B2B trust and credibility strategist. You evaluate how effectively a company leverages customer proof to build buyer confidence and reduce purchase risk. You assess not just whether proof exists, but whether it's strategically deployed to support the buying journey. In B2B, the trust stack (testimonials, logos, case studies, reviews, security certifications) is often the difference between a demo request and a bounce. Your analysis reads like advice from a trusted GTM advisor.""" + ANTI_HALLUCINATION_INSTRUCTION
 
-REVIEW_PROMPT = """Perform a comprehensive trust and credibility audit for this B2B SaaS company's website. Evaluate their entire "proof stack" — how effectively they use customer evidence to build buyer confidence.
+REVIEW_PROMPT = """Perform a comprehensive trust and credibility audit for this company's website. Evaluate their entire "proof stack" — how effectively they use customer evidence to build buyer confidence.
 
 Website: {company_url}
 Company Name: {company_name}
@@ -21,13 +21,13 @@ TESTIMONIALS FROM WEBSITE:
 PROOF ELEMENTS (logos, metrics, awards):
 {proof_elements}
 
-MOCK REVIEW DATA (G2/Capterra estimates):
+EXTERNAL REVIEW DATA:
 {review_data}
 
 CRITICAL INSTRUCTIONS:
 - For every finding, explain the BUSINESS IMPACT — how trust gaps affect conversion (e.g., "Having testimonials only on the homepage means visitors who reach the pricing page see no customer validation at their point of highest purchase anxiety, likely reducing demo requests by 10-20%").
 - Quote ACTUAL testimonials and evaluate their effectiveness (named vs anonymous, specific vs generic, relevant to buyer persona).
-- Compare to BEST PRACTICES with named examples of B2B SaaS companies with excellent trust stacks.
+- Compare to BEST PRACTICES with named examples of companies in the same industry with excellent trust stacks.
 - Write analysis_summary as a strategic narrative about the company's credibility positioning.
 
 Provide a JSON response:
@@ -67,7 +67,7 @@ Provide a JSON response:
             "before_example": "current state of proof on a specific page",
             "after_example": "suggested improvement with specifics",
             "current_state": "current state",
-            "best_practice": "named example of a B2B SaaS company doing this well",
+            "best_practice": "named example of a company doing this well",
             "impact": "High|Medium|Low",
             "effort": "High|Medium|Low",
             "implementation_steps": ["step 1", "step 2"],
@@ -89,6 +89,9 @@ class ReviewSentimentAgent(BaseAgent):
     async def run(self) -> dict[str, Any]:
         await self.update_progress(10, "Extracting testimonials")
 
+        if not self.has_sufficient_data():
+            return self._insufficient_data_result("No website content available for review sentiment analysis.")
+
         testimonials = self._extract_testimonials()
         proof_elements = self._extract_proof_elements()
 
@@ -98,12 +101,17 @@ class ReviewSentimentAgent(BaseAgent):
 
         await self.update_progress(50, "Analyzing sentiment with AI")
 
+        if review_data.get("_source") == "unavailable":
+            review_data_str = "G2/Capterra review data is not available for this audit. Assess trust and credibility based solely on what is present on the website."
+        else:
+            review_data_str = json.dumps(review_data, indent=2)
+
         prompt = REVIEW_PROMPT.format(
             company_url=self.context.company_url,
             company_name=self.context.company_name or "Unknown",
             testimonials=testimonials,
             proof_elements=proof_elements,
-            review_data=json.dumps(review_data, indent=2),
+            review_data=review_data_str,
         )
 
         try:
