@@ -10,6 +10,7 @@ from urllib.parse import urljoin, urlparse
 
 from agents.base_agent import BaseAgent
 from agents.context_store import PageData, ScreenshotData
+from config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -68,10 +69,15 @@ SUPPLEMENTAL_EXTRACT_JS = """() => {
     const schemaScripts = Array.from(
         document.querySelectorAll('script[type="application/ld+json"]')
     );
-    const schemaTypes = schemaScripts.map(s => {
-        try { return JSON.parse(s.textContent)['@type']; }
-        catch { return null; }
-    }).filter(Boolean);
+    const schemaTypes = schemaScripts.flatMap(s => {
+        try {
+            const data = JSON.parse(s.textContent);
+            if (data['@graph']) return data['@graph'].map(item => item['@type']).filter(Boolean);
+            if (Array.isArray(data)) return data.map(item => item['@type']).filter(Boolean);
+            if (data['@type']) return [].concat(data['@type']);
+            return [];
+        } catch { return []; }
+    });
 
     // Tech stack detection
     const techStack = [];
@@ -154,7 +160,8 @@ class WebScraperAgent(BaseAgent):
 
     async def run(self) -> dict[str, Any]:
         """Crawl the target website and extract structured data."""
-        max_pages = 10 if self.context.audit_type == "quick" else 30
+        settings = get_settings()
+        max_pages = settings.max_pages_quick if self.context.audit_type == "quick" else settings.max_pages_full
 
         await self.update_progress(5, "Initializing crawler")
 
@@ -471,6 +478,14 @@ class WebScraperAgent(BaseAgent):
 
             page_type = self._classify_page(url, {"title": title, "rawText": raw_text})
 
+            # Schema detection: prefer JS extraction, fall back to HTML parsing
+            has_schema = js_data.get("hasSchema", False)
+            schema_types = js_data.get("schemaTypes", [])
+            if not has_schema:
+                has_schema, schema_types = self._detect_schema_from_html(
+                    result.html or result.cleaned_html or ""
+                )
+
             return PageData(
                 url=url,
                 title=title,
@@ -489,8 +504,8 @@ class WebScraperAgent(BaseAgent):
                 status_code=result.status_code or 200,
                 page_type=page_type,
                 testimonials=js_data.get("testimonials", []),
-                has_schema=js_data.get("hasSchema", False),
-                schema_types=js_data.get("schemaTypes", []),
+                has_schema=has_schema,
+                schema_types=schema_types,
                 og_site_name=og_site_name,
                 tech_stack=js_data.get("techStack", []),
                 word_count=word_count,
@@ -502,6 +517,36 @@ class WebScraperAgent(BaseAgent):
         except Exception as e:
             logger.warning(f"[web_scraper] Failed to convert CrawlResult for {result.url}: {e}")
             return None
+
+    @staticmethod
+    def _detect_schema_from_html(html: str) -> tuple[bool, list[str]]:
+        """Detect JSON-LD schema from raw HTML as fallback when JS extraction fails."""
+        import re
+        schema_types = []
+        for match in re.finditer(
+            r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
+            html,
+            re.DOTALL | re.IGNORECASE,
+        ):
+            try:
+                data = json.loads(match.group(1))
+                if isinstance(data, dict):
+                    if data.get("@graph"):
+                        schema_types.extend(
+                            item["@type"]
+                            for item in data["@graph"]
+                            if isinstance(item, dict) and "@type" in item
+                        )
+                    elif "@type" in data:
+                        t = data["@type"]
+                        schema_types.extend(t if isinstance(t, list) else [t])
+                elif isinstance(data, list):
+                    for item in data:
+                        if isinstance(item, dict) and "@type" in item:
+                            schema_types.append(item["@type"])
+            except (json.JSONDecodeError, TypeError, KeyError):
+                continue
+        return bool(schema_types), schema_types
 
     def _extract_headings_from_html(self, html: str) -> tuple[list[str], list[str], list[str]]:
         """Extract h1, h2, h3 tags from HTML string."""
@@ -520,7 +565,7 @@ class WebScraperAgent(BaseAgent):
             return [], [], []
 
     def _prioritize_urls(self, urls: list[str]) -> list[str]:
-        """Sort URLs by GTM relevance — prioritize key page types."""
+        """Sort URLs by GTM relevance with section diversity guarantee."""
         priority_keywords = {
             "pricing": 10,
             "product": 9,
@@ -530,13 +575,25 @@ class WebScraperAgent(BaseAgent):
             "about": 7,
             "customer": 7,
             "case-stud": 7,
+            "case_stud": 7,
             "success": 7,
+            "resources": 7,
+            "resource-hub": 7,
+            "blog": 7,
             "demo": 6,
             "contact": 6,
+            "webinar": 6,
+            "whitepaper": 6,
+            "white-paper": 6,
+            "ebook": 6,
+            "guide": 6,
+            "library": 6,
+            "learning": 6,
+            "academy": 6,
+            "knowledge": 6,
+            "podcast": 5,
             "integrations": 5,
             "partners": 5,
-            "blog": 3,
-            "resources": 3,
             "news": 2,
             "careers": 1,
             "legal": 0,
@@ -553,7 +610,24 @@ class WebScraperAgent(BaseAgent):
                     best = max(best, points)
             return best
 
-        return sorted(urls, key=score, reverse=True)
+        scored = sorted(urls, key=score, reverse=True)
+
+        # Section diversity: ensure at least one URL from each major path prefix
+        # so we don't cluster on /solutions/ and miss /resources/ entirely
+        seen_sections: set[str] = set()
+        diverse_head: list[str] = []
+        remainder: list[str] = []
+
+        for url in scored:
+            path = urlparse(url).path.strip("/")
+            section = path.split("/")[0] if path else ""
+            if section and section not in seen_sections:
+                seen_sections.add(section)
+                diverse_head.append(url)
+            else:
+                remainder.append(url)
+
+        return diverse_head + remainder
 
     async def _detect_company_name(self) -> None:
         """Detect company name from homepage data with multiple fallback strategies."""
@@ -731,6 +805,11 @@ class WebScraperAgent(BaseAgent):
                         elif parsed.scheme in ("http", "https"):
                             external_links.append(href)
 
+                    # Detect schema from HTML
+                    page_has_schema, page_schema_types = self._detect_schema_from_html(
+                        resp.text
+                    )
+
                     page_data = PageData(
                         url=url,
                         title=title or "",
@@ -745,6 +824,8 @@ class WebScraperAgent(BaseAgent):
                         status_code=resp.status_code,
                         page_type=self._classify_page(url, {"title": title, "rawText": raw_text}),
                         og_site_name=og_site_name,
+                        has_schema=page_has_schema,
+                        schema_types=page_schema_types,
                     )
                     await self.context.set_page(page_data)
                     pages_crawled += 1

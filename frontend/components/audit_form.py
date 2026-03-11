@@ -1,18 +1,12 @@
 """Audit submission form component."""
 
-import asyncio
-import logging
-import threading
-import traceback
-
 import ipaddress
-import socket
+import logging
 
 import streamlit as st
 from urllib.parse import urlparse
 
-from backend.models.base import SessionLocal, init_db
-from backend.services.audit_service import AuditService
+from frontend.utils.api_client import create_audit
 
 logger = logging.getLogger(__name__)
 
@@ -39,28 +33,6 @@ def validate_url(url: str) -> bool:
         return True
     except Exception:
         return False
-
-
-def _run_audit_background(audit_id: str) -> None:
-    """Run the audit pipeline in a background thread."""
-    db = SessionLocal()
-    try:
-        service = AuditService(db)
-        asyncio.run(service.run_audit_async(audit_id))
-    except Exception as e:
-        logger.exception(f"Background audit {audit_id} failed: {e}")
-        # Persist the error to the DB so the UI can show it
-        try:
-            from backend.models.audit import Audit, AuditStatus
-            audit = db.query(Audit).filter(Audit.id == audit_id).first()
-            if audit and audit.status != AuditStatus.COMPLETED:
-                audit.status = AuditStatus.FAILED
-                audit.error_message = f"{type(e).__name__}: {e}\n{traceback.format_exc()[-500:]}"
-                db.commit()
-        except Exception:
-            pass
-    finally:
-        db.close()
 
 
 def _show_llm_status() -> None:
@@ -143,27 +115,14 @@ def render_audit_form() -> None:
             audit_type_value = "full" if "Full" in audit_type else "quick"
 
             try:
-                init_db()
-                db = SessionLocal()
-                try:
-                    service = AuditService(db)
-                    audit = service.create_audit(company_url, audit_type_value)
-                    audit_id = audit.id
+                audit_data = create_audit(company_url, audit_type_value)
+                audit_id = audit_data["id"]
 
-                    st.session_state["active_audit_id"] = audit_id
-                    st.session_state["active_audit_url"] = company_url
+                st.session_state["active_audit_id"] = audit_id
+                st.session_state["active_audit_url"] = company_url
 
-                    # Launch the audit pipeline in a background thread
-                    thread = threading.Thread(
-                        target=_run_audit_background,
-                        args=(audit_id,),
-                        daemon=True,
-                    )
-                    thread.start()
-
-                    st.success(f"Audit started! ID: {audit_id}")
-                    st.rerun()
-                finally:
-                    db.close()
+                st.success(f"Audit started! ID: {audit_id}")
+                st.rerun()
             except Exception as e:
-                st.error(f"Failed to start audit: {e}")
+                logger.exception(f"Failed to start audit: {e}")
+                st.error(f"Failed to start audit: {e}. Is the backend server running?")

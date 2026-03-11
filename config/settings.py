@@ -38,7 +38,7 @@ class Settings(BaseSettings):
 
     # Audit Config
     max_pages_full: int = 30
-    max_pages_quick: int = 10
+    max_pages_quick: int = 15
     audit_timeout_minutes: int = 45
     rate_limit_per_hour: int = 5
 
@@ -60,7 +60,7 @@ class Settings(BaseSettings):
 
     # Backend
     backend_host: str = "127.0.0.1"
-    backend_port: int = 8000
+    backend_port: int = 8501
 
     # Security
     cors_origins: str = "http://localhost:8501"

@@ -8,12 +8,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 
-from backend.models.base import init_db
 from frontend.components.auth import check_password
 from frontend.utils.brand_loader import inject_brand_css
-
-# Initialize database tables on startup
-init_db()
 
 st.set_page_config(
     page_title="GTM Audit Platform",

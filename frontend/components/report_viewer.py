@@ -1,53 +1,45 @@
 """Interactive report viewer component with download options."""
 
-import json
-
 import streamlit as st
 
-from backend.models.base import SessionLocal
-from backend.services.audit_service import AuditService
-from backend.services.report_service import ReportService
+from frontend.utils.api_client import delete_audit, get_audit_status, get_report
 
 
 def render_report_viewer(audit_id: str) -> None:
     """Display the HTML report with download buttons."""
-    db = SessionLocal()
-    try:
-        service = ReportService(db)
-        report = service.get_report(audit_id)
+    report_data = get_report(audit_id)
 
-        if not report:
-            audit_service = AuditService(db)
-            audit = audit_service.get_audit(audit_id)
-            if not audit:
-                st.error("Audit not found.")
-            elif audit.status.value == "running":
+    if not report_data:
+        # Report not found — check audit status for a useful message
+        try:
+            status_data = get_audit_status(audit_id)
+            audit_status = status_data.get("status", "unknown")
+            if audit_status == "running":
                 st.warning("Report not yet available. The audit is still in progress.")
-            elif audit.status.value in ("completed", "failed"):
+            elif audit_status in ("completed", "failed"):
                 msg = "Report generation failed."
-                if audit.error_message:
-                    msg += f" Error: {audit.error_message}"
+                if status_data.get("error_message"):
+                    msg += f" Error: {status_data['error_message']}"
                 msg += " Please try running the audit again."
                 st.error(msg)
             else:
                 st.warning("Report not yet available.")
-            return
-    finally:
-        db.close()
+        except Exception:
+            st.error("Audit not found. Is the backend running?")
+        return
 
-    html_content = report.html_content or ""
-    markdown_content = report.markdown_content or ""
-    metadata = {}
-    if report.report_metadata:
-        metadata = report.report_metadata if isinstance(report.report_metadata, dict) else json.loads(report.report_metadata)
-    share_token = report.share_token or ""
+    html_content = report_data.get("html_content") or ""
+    markdown_content = report_data.get("markdown_content") or ""
+    metadata = report_data.get("report_metadata") or {}
+    share_token = report_data.get("share_token") or ""
 
     # Report header
     st.subheader("Audit Report")
     if metadata:
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Overall Score", f"{metadata.get('overall_score', 0):.0f}/100")
+            score = metadata.get("overall_score", 0)
+            st.metric("Overall Score", f"{score:.0f}/100" if score else "N/A")
         with col2:
             st.metric("Grade", metadata.get("overall_grade", "N/A"))
         with col3:
@@ -89,11 +81,7 @@ def render_report_viewer(audit_id: str) -> None:
         c1, c2, c3 = st.columns([1, 1, 4])
         with c1:
             if st.button("Confirm Delete", key="yes_del_report", type="primary"):
-                del_db = SessionLocal()
-                try:
-                    AuditService(del_db).delete_audit(audit_id)
-                finally:
-                    del_db.close()
+                delete_audit(audit_id)
                 st.session_state.pop("confirm_delete_report", None)
                 st.session_state.pop("view_audit_id", None)
                 st.switch_page("pages/3_Audit_History.py")

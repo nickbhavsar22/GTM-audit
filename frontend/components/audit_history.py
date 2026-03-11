@@ -2,35 +2,23 @@
 
 import streamlit as st
 
-from backend.models.base import SessionLocal
-from backend.services.audit_service import AuditService
-
-
-def _delete_audit(audit_id: str) -> bool:
-    """Delete an audit and all associated data. Returns True on success."""
-    db = SessionLocal()
-    try:
-        service = AuditService(db)
-        return service.delete_audit(audit_id)
-    finally:
-        db.close()
+from frontend.utils.api_client import delete_audit, get_audit_history
 
 
 def render_audit_history() -> None:
     """Display list of past audits with status and scores."""
-    db = SessionLocal()
     try:
-        service = AuditService(db)
-        audits = service.list_audits()
-    finally:
-        db.close()
+        audits = get_audit_history()
+    except Exception as e:
+        st.error(f"Failed to load audit history: {e}. Is the backend running?")
+        return
 
     if not audits:
         st.info("No audits yet. Start your first audit!")
         return
 
     for audit in audits:
-        status = audit.status.value if audit.status else "unknown"
+        status = audit.get("status", "unknown")
         status_icon = {
             "completed": ":white_check_mark:",
             "running": ":hourglass_flowing_sand:",
@@ -38,20 +26,20 @@ def render_audit_history() -> None:
             "pending": ":clock3:",
         }.get(status, ":question:")
 
-        audit_id = audit.id
+        audit_id = audit["id"]
         confirm_key = f"confirm_delete_{audit_id}"
 
         with st.container():
             # Check if we're showing the delete confirmation for this audit
             if st.session_state.get(confirm_key):
                 st.warning(
-                    f"**Delete audit for {audit.company_name or audit.company_url}?** "
+                    f"**Delete audit for {audit.get('company_name') or audit.get('company_url', '')}?** "
                     "This will permanently remove the audit, report, and all results."
                 )
                 c1, c2, c3 = st.columns([1, 1, 4])
                 with c1:
                     if st.button("Confirm Delete", key=f"yes_{audit_id}", type="primary"):
-                        _delete_audit(audit_id)
+                        delete_audit(audit_id)
                         del st.session_state[confirm_key]
                         st.rerun()
                 with c2:
@@ -61,13 +49,13 @@ def render_audit_history() -> None:
             else:
                 col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 0.5])
                 with col1:
-                    company = audit.company_name or audit.company_url or ""
+                    company = audit.get("company_name") or audit.get("company_url", "")
                     st.markdown(f"**{company}**")
-                    st.caption(audit.company_url or "")
+                    st.caption(audit.get("company_url", ""))
                 with col2:
                     st.markdown(f"{status_icon} {status.capitalize()}")
                 with col3:
-                    score = audit.overall_score
+                    score = audit.get("overall_score")
                     if score is not None:
                         st.metric("Score", f"{score:.0f}")
                     else:
